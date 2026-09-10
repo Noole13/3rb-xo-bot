@@ -52,25 +52,26 @@ server.listen(PORT, "0.0.0.0", () => {
 
 /*
 |--------------------------------------------------------------------------
-| Firebase Setup (Realtime Database)
+| Firebase Setup (Realtime Database) - 3 Variables Method
 |--------------------------------------------------------------------------
 */
 
 let serviceAccount;
 
-if (process.env.FIREBASE_CONFIG_JSON) {
-  serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG_JSON);
-
-  if (serviceAccount.private_key) {
-    serviceAccount.private_key = serviceAccount.private_key.replace(
-      /\\n/g,
-      "\n"
-    );
-  }
+if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+  serviceAccount = {
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+  };
 } else {
+  // للتشغيل المحلي عبر ملف JSON في حال عدم توفر المتغيرات
   serviceAccount = JSON.parse(
     fs.readFileSync("./firebase-key.json", "utf8")
   );
+  if (serviceAccount.private_key) {
+    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
+  }
 }
 
 initializeApp({
@@ -351,12 +352,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       if (interaction.commandName === "top") {
         try {
-          // تأكيد التفاعل فوراً مع Discord
           await interaction.deferReply();
 
           console.log("TOP: بدأ طلب الترتيب");
 
-          // قراءة leaderboard مباشرة من Firebase
           const snapshot = await db
             .ref("leaderboard")
             .once("value");
@@ -364,11 +363,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
           console.log("TOP: تم الاتصال بـ Firebase");
 
           const leaderboardData = snapshot.val();
-
-          console.log(
-            "TOP: بيانات Firebase:",
-            JSON.stringify(leaderboardData, null, 2)
-          );
 
           if (!leaderboardData) {
             await interaction.editReply({
@@ -378,12 +372,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
             return;
           }
-
-          /*
-          |--------------------------------------------------------------------------
-          | تحويل البيانات إلى قائمة لاعبين
-          |--------------------------------------------------------------------------
-          */
 
           const sorted = Object.entries(leaderboardData)
             .map(([userId, data]) => {
@@ -407,11 +395,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
             .sort((a, b) => b.wins - a.wins)
             .slice(0, 3);
 
-          console.log(
-            "TOP: الترتيب النهائي:",
-            JSON.stringify(sorted, null, 2)
-          );
-
           if (sorted.length === 0) {
             await interaction.editReply({
               content:
@@ -420,12 +403,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
             return;
           }
-
-          /*
-          |--------------------------------------------------------------------------
-          | إنشاء رسالة الترتيب
-          |--------------------------------------------------------------------------
-          */
 
           const medals = [
             "🥇",
@@ -444,17 +421,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
               `**${player.wins}** فوز\n`;
           }
 
-          console.log(
-            "TOP: إرسال النتيجة إلى Discord"
-          );
-
           await interaction.editReply({
             content: desc,
           });
-
-          console.log(
-            "TOP: تم إرسال الترتيب بنجاح"
-          );
 
           return;
 
@@ -683,7 +652,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
             ? "⭕"
             : "❌";
 
-        // تحديث رسالة اللعبة
         await interaction.update({
           content:
             `🏁 **انتهت اللعبة!**\n` +
@@ -698,7 +666,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
           ],
         });
 
-        // تسجيل الفوز في Firebase
         addWin(winner.id).catch(
           (error) => {
             console.error(
