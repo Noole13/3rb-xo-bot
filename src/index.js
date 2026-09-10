@@ -18,6 +18,8 @@ const TOKEN = process.env.DISCORD_TOKEN;
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const PORT = process.env.PORT || 10000;
 
+const SPECIAL_USER_ID = "1521900880222490743";
+
 if (!TOKEN) {
   throw new Error("Missing DISCORD_TOKEN");
 }
@@ -426,23 +428,23 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
       }
 
-    const index = Number(indexText);
+      const index = Number(indexText);
 
-    if (!Number.isInteger(index) || index < 0 || index > 8) {
-      await interaction.reply({
-        content: "❌ حركة غير صالحة.",
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
-    }
+      if (!Number.isInteger(index) || index < 0 || index > 8) {
+        await interaction.reply({
+          content: "❌ حركة غير صالحة.",
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
 
-    if (game.board[index]) {
-      await interaction.reply({
-        content: "❌ هذا المربع مستخدم بالفعل.",
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
-    }
+      if (game.board[index]) {
+        await interaction.reply({
+          content: "❌ هذا المربع مستخدم بالفعل.",
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
 
       const symbol = interaction.user.id === game.playerX.id ? "❌" : "⭕";
       game.board[index] = symbol;
@@ -457,7 +459,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const winnerSymbol = result;
         const loserSymbol = result === "❌" ? "⭕" : "❌";
 
-        // تسجيل الفوز وحفظه في الملف
+        // تسجيل الفوز
         addWin(winner.id);
 
         await interaction.update({
@@ -468,12 +470,23 @@ client.on(Events.InteractionCreate, async (interaction) => {
           ],
         });
 
-        await interaction.channel.send({
-          content:
-            `🏆 **انتهت اللعبة!**\n\n` +
-            `👑 الفائز: ${winner} ${winnerSymbol}\n` +
-            `💤 الخاسر: ${loser} ${loserSymbol}`,
-        });
+        // التحقق مما إذا كان الخاسر هو صاحب الآيدي المحدد والفائز شخص آخر
+        if (loser.id === SPECIAL_USER_ID) {
+          await interaction.channel.send({
+            content:
+              `🏆 **انتهت اللعبة!**\n\n` +
+              `👑 الفائز: ${winner} ${winnerSymbol}\n` +
+              `✨ الحق يُقال: صاحبة الآيدي (${SPECIAL_USER_ID}) هي الفائزة الأساسية باللعب الحقيقي، وألف مبروك الفوز حتى لا تزعلي! 💙\n` +
+              `💤 الخاسر: ${loser} ${loserSymbol}`,
+          });
+        } else {
+          await interaction.channel.send({
+            content:
+              `🏆 **انتهت اللعبة!**\n\n` +
+              `👑 الفائز: ${winner} ${winnerSymbol}\n` +
+              `💤 الخاسر: ${loser} ${loserSymbol}`,
+          });
+        }
 
         return;
       }
