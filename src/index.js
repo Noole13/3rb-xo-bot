@@ -99,7 +99,7 @@ async function registerCommands() {
 |--------------------------------------------------------------------------
 */
 
-function createBoard(gameId) {
+function createBoard(gameId, disabled = false) {
   const game = games.get(gameId);
 
   if (!game) {
@@ -122,7 +122,7 @@ function createBoard(gameId) {
               ? ButtonStyle.Primary
               : ButtonStyle.Secondary
         )
-        .setDisabled(Boolean(value))
+        .setDisabled(disabled || Boolean(value))
     );
   }
 
@@ -466,16 +466,21 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const winnerSymbol = result;
         const loserSymbol = result === "❌" ? "⭕" : "❌";
 
+        // تحديث رسالة اللعبة الأصلية بقفل الأزرار وإظهار حالة الانتهاء
         await interaction.update({
+          content: `🏁 **انتهت اللعبة!**\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
+          components: [
+            ...createBoard(gameId, true),
+            ...createGameButtons(gameId),
+          ],
+        });
+
+        // إرسال رسالة منفصلة وجديدة تماماً بالفائز والخاسر
+        await interaction.channel.send({
           content:
             `🏆 **انتهت اللعبة!**\n\n` +
             `👑 الفائز: ${winner} ${winnerSymbol}\n` +
             `💤 الخاسر: ${loser} ${loserSymbol}`,
-
-          components: [
-            ...createBoard(gameId),
-            ...createGameButtons(gameId),
-          ],
         });
 
         return;
@@ -496,9 +501,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
             `❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
 
           components: [
-            ...createBoard(gameId),
+            ...createBoard(gameId, true),
             ...createGameButtons(gameId),
           ],
+        });
+
+        await interaction.channel.send({
+          content:
+            `🤝 **انتهت اللعبة بالتعادل!**\n\n` +
+            `❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
         });
 
         return;
