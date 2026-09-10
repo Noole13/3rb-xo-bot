@@ -99,16 +99,12 @@ async function registerCommands() {
 |--------------------------------------------------------------------------
 */
 
-function createBoard(gameId, userId = null, disabled = false) {
+function createBoard(gameId) {
   const game = games.get(gameId);
 
   if (!game) {
     return [];
   }
-
-  // إذا لم يكن دور المستخدم الحالي، يتم تعطيل الأزرار مؤقتاً لكي لا يستطيع اللعب
-  const isNotMyTurn = userId && !game.finished && game.turn !== userId;
-  const shouldDisableAll = disabled || isNotMyTurn;
 
   const board = [];
 
@@ -126,28 +122,14 @@ function createBoard(gameId, userId = null, disabled = false) {
               ? ButtonStyle.Primary
               : ButtonStyle.Secondary
         )
-        .setDisabled(shouldDisableAll || Boolean(value))
+        .setDisabled(Boolean(value) || game.finished)
     );
   }
 
   return [
-    new ActionRowBuilder().addComponents(
-      board[0],
-      board[1],
-      board[2]
-    ),
-
-    new ActionRowBuilder().addComponents(
-      board[3],
-      board[4],
-      board[5]
-    ),
-
-    new ActionRowBuilder().addComponents(
-      board[6],
-      board[7],
-      board[8]
-    ),
+    new ActionRowBuilder().addComponents(board[0], board[1], board[2]),
+    new ActionRowBuilder().addComponents(board[3], board[4], board[5]),
+    new ActionRowBuilder().addComponents(board[6], board[7], board[8]),
   ];
 }
 
@@ -343,10 +325,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       const game = games.get(gameId);
 
-      // نعرض اللوحة بحيث تكون مفعلة لصاحب الدور (المنشئ X) ومعطلة للاخصم
       await interaction.reply({
         content: getStatus(game),
-        components: createBoard(gameId, creator.id),
+        components: createBoard(gameId),
       });
 
       return;
@@ -476,7 +457,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await interaction.update({
           content: `🏁 **انتهت اللعبة!**\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
           components: [
-            ...createBoard(gameId, null, true),
+            ...createBoard(gameId),
             ...createGameButtons(gameId, false),
           ],
         });
@@ -506,7 +487,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             `❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
 
           components: [
-            ...createBoard(gameId, null, true),
+            ...createBoard(gameId),
             ...createGameButtons(gameId, false),
           ],
         });
@@ -531,10 +512,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
           ? game.playerO.id
           : game.playerX.id;
 
-      // تحديث الرسالة بحيث تتقلب الأزرار وتصبح نشطة للاعب الجديد ومعطلة عن اللاعب الذي انتهى دورة
       await interaction.update({
         content: getStatus(game),
-        components: createBoard(gameId, game.turn),
+        components: createBoard(gameId),
       });
 
       return;
@@ -581,7 +561,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       game.finished = true;
       await interaction.update({
         components: [
-          ...createBoard(gameId, null, true),
+          ...createBoard(gameId),
           ...createGameButtons(gameId, true),
         ],
       });
@@ -595,7 +575,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       await interaction.channel.send({
         content: getStatus(newGame),
-        components: createBoard(newGameId, newGame.turn),
+        components: createBoard(newGameId),
       });
 
       return;
