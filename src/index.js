@@ -56,16 +56,21 @@ server.listen(PORT, "0.0.0.0", () => {
 |--------------------------------------------------------------------------
 */
 
-// قراءة بيانات المفتاح السري من متغيرات البيئة على Render أو من الملف محلياً للتجربة
 let serviceAccount;
+
 if (process.env.FIREBASE_CONFIG_JSON) {
   serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG_JSON);
-  // إصلاح مشكلة الأسطر الجديدة في المفتاح الخاص لضمان المصادقة الصحيحة
+
   if (serviceAccount.private_key) {
-    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    serviceAccount.private_key = serviceAccount.private_key.replace(
+      /\\n/g,
+      "\n"
+    );
   }
 } else {
-  serviceAccount = JSON.parse(fs.readFileSync("./firebase-key.json", "utf8"));
+  serviceAccount = JSON.parse(
+    fs.readFileSync("./firebase-key.json", "utf8")
+  );
 }
 
 initializeApp({
@@ -85,9 +90,17 @@ const db = getDatabase();
 async function addWin(userId) {
   try {
     const userWinsRef = db.ref(`leaderboard/${userId}/wins`);
-    await userWinsRef.transaction((currentWins) => (currentWins || 0) + 1);
+
+    await userWinsRef.transaction((currentWins) => {
+      return (Number(currentWins) || 0) + 1;
+    });
+
+    console.log(`Firebase: win added for ${userId}`);
   } catch (error) {
-    console.error("Error updating win in Firebase:", error);
+    console.error(
+      `Firebase: failed to update win for ${userId}:`,
+      error
+    );
   }
 }
 
@@ -179,15 +192,27 @@ function createBoard(gameId) {
   }
 
   return [
-    new ActionRowBuilder().addComponents(board[0], board[1], board[2]),
-    new ActionRowBuilder().addComponents(board[3], board[4], board[5]),
-    new ActionRowBuilder().addComponents(board[6], board[7], board[8]),
+    new ActionRowBuilder().addComponents(
+      board[0],
+      board[1],
+      board[2]
+    ),
+    new ActionRowBuilder().addComponents(
+      board[3],
+      board[4],
+      board[5]
+    ),
+    new ActionRowBuilder().addComponents(
+      board[6],
+      board[7],
+      board[8]
+    ),
   ];
 }
 
 /*
 |--------------------------------------------------------------------------
-| Game Buttons (Replay Only)
+| Game Buttons
 |--------------------------------------------------------------------------
 */
 
@@ -295,7 +320,10 @@ client.once(Events.ClientReady, async (readyClient) => {
   try {
     await registerCommands();
   } catch (error) {
-    console.error("Failed to register slash commands:", error);
+    console.error(
+      "Failed to register slash commands:",
+      error
+    );
   }
 });
 
@@ -309,77 +337,189 @@ client.on(Events.InteractionCreate, async (interaction) => {
   try {
     /*
     |--------------------------------------------------------------------------
-    | Slash Commands (/xo and /top)
+    | Slash Commands
     |--------------------------------------------------------------------------
     */
 
     if (interaction.isChatInputCommand()) {
+
+      /*
+      |--------------------------------------------------------------------------
+      | /top
+      |--------------------------------------------------------------------------
+      */
+
       if (interaction.commandName === "top") {
-        // تأجيل الرد فوراً لتجنب مشكلة انتهاء المهلة (3 ثواني) من ديسكورد
-        await interaction.deferReply();
+        try {
+          // تأكيد التفاعل فوراً مع Discord
+          await interaction.deferReply();
 
-        // جلب قائمة الأوائل المحدثة مباشرة من فايربيس
-        const snapshot = await db.ref("leaderboard").once("value");
-        const leaderboardData = snapshot.val();
+          console.log("TOP: بدأ طلب الترتيب");
 
-        if (!leaderboardData) {
+          // قراءة leaderboard مباشرة من Firebase
+          const snapshot = await db
+            .ref("leaderboard")
+            .once("value");
+
+          console.log("TOP: تم الاتصال بـ Firebase");
+
+          const leaderboardData = snapshot.val();
+
+          console.log(
+            "TOP: بيانات Firebase:",
+            JSON.stringify(leaderboardData, null, 2)
+          );
+
+          if (!leaderboardData) {
+            await interaction.editReply({
+              content:
+                "📊 لا توجد انتصارات مسجلة حتى الآن.",
+            });
+
+            return;
+          }
+
+          /*
+          |--------------------------------------------------------------------------
+          | تحويل البيانات إلى قائمة لاعبين
+          |--------------------------------------------------------------------------
+          */
+
+          const sorted = Object.entries(leaderboardData)
+            .map(([userId, data]) => {
+              let wins = 0;
+
+              if (
+                data &&
+                typeof data === "object"
+              ) {
+                wins = Number(data.wins) || 0;
+              } else {
+                wins = Number(data) || 0;
+              }
+
+              return {
+                userId,
+                wins,
+              };
+            })
+            .filter((player) => player.wins > 0)
+            .sort((a, b) => b.wins - a.wins)
+            .slice(0, 3);
+
+          console.log(
+            "TOP: الترتيب النهائي:",
+            JSON.stringify(sorted, null, 2)
+          );
+
+          if (sorted.length === 0) {
+            await interaction.editReply({
+              content:
+                "📊 لا توجد انتصارات مسجلة حتى الآن.",
+            });
+
+            return;
+          }
+
+          /*
+          |--------------------------------------------------------------------------
+          | إنشاء رسالة الترتيب
+          |--------------------------------------------------------------------------
+          */
+
+          const medals = [
+            "🥇",
+            "🥈",
+            "🥉",
+          ];
+
+          let desc =
+            "🏆 **أفضل 3 لاعبين في لعبة XO**\n\n";
+
+          for (let i = 0; i < sorted.length; i += 1) {
+            const player = sorted[i];
+
+            desc +=
+              `${medals[i]} <@${player.userId}> — ` +
+              `**${player.wins}** فوز\n`;
+          }
+
+          console.log(
+            "TOP: إرسال النتيجة إلى Discord"
+          );
+
           await interaction.editReply({
-            content: "📊 لا توجد انتصارات مسجلة حتى الآن.",
+            content: desc,
           });
+
+          console.log(
+            "TOP: تم إرسال الترتيب بنجاح"
+          );
+
+          return;
+
+        } catch (error) {
+          console.error(
+            "TOP ERROR:",
+            error
+          );
+
+          try {
+            if (
+              interaction.deferred ||
+              interaction.replied
+            ) {
+              await interaction.editReply({
+                content:
+                  "❌ حدث خطأ أثناء جلب الترتيب من قاعدة البيانات.",
+              });
+            }
+          } catch (editError) {
+            console.error(
+              "TOP EDIT ERROR:",
+              editError
+            );
+          }
+
           return;
         }
-
-        // ترتيب اللاعبين بدقة بناءً على هيكلة البيانات في فايربيس
-        const sorted = Object.entries(leaderboardData)
-          .sort(([, a], [, b]) => {
-            const winsA = a && typeof a === "object" ? (a.wins || 0) : Number(a) || 0;
-            const winsB = b && typeof b === "object" ? (b.wins || 0) : Number(b) || 0;
-            return winsB - winsA;
-          })
-          .slice(0, 3);
-
-        if (sorted.length === 0) {
-          await interaction.editReply({
-            content: "📊 لا توجد انتصارات مسجلة حتى الآن.",
-          });
-          return;
-        }
-
-        let desc = "🏆 **أفضل 3 لاعبين في لعبة XO**\n\n";
-        const medals = ["🥇", "🥈", "🥉"];
-
-        sorted.forEach(([userId, data], index) => {
-          const wins = data && typeof data === "object" ? (data.wins || 0) : Number(data) || 0;
-          desc += `${medals[index]} <@${userId}> — **${wins}** فوز\n`;
-        });
-
-        await interaction.editReply({
-          content: desc,
-        });
-
-        return;
       }
+
+      /*
+      |--------------------------------------------------------------------------
+      | /xo
+      |--------------------------------------------------------------------------
+      */
 
       if (interaction.commandName !== "xo") {
         return;
       }
 
-      const opponent = interaction.options.getUser("player", true);
+      const opponent =
+        interaction.options.getUser(
+          "player",
+          true
+        );
+
       const creator = interaction.user;
 
       if (opponent.bot) {
         await interaction.reply({
-          content: "❌ لا يمكنك اللعب ضد بوت.",
+          content:
+            "❌ لا يمكنك اللعب ضد بوت.",
           flags: MessageFlags.Ephemeral,
         });
+
         return;
       }
 
       if (opponent.id === creator.id) {
         await interaction.reply({
-          content: "❌ لا يمكنك اللعب ضد نفسك.",
+          content:
+            "❌ لا يمكنك اللعب ضد نفسك.",
           flags: MessageFlags.Ephemeral,
         });
+
         return;
       }
 
@@ -398,7 +538,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
       }
 
-      const gameId = createGame(creator, opponent);
+      const gameId = createGame(
+        creator,
+        opponent
+      );
+
       const game = games.get(gameId);
 
       await interaction.reply({
@@ -419,23 +563,38 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return;
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | XO Board
+    |--------------------------------------------------------------------------
+    */
+
     if (interaction.customId.startsWith("xo:")) {
-      const [, gameId, indexText] = interaction.customId.split(":");
+      const [
+        ,
+        gameId,
+        indexText,
+      ] = interaction.customId.split(":");
+
       const game = games.get(gameId);
 
       if (!game) {
         await interaction.reply({
-          content: "❌ هذه اللعبة لم تعد موجودة.",
+          content:
+            "❌ هذه اللعبة لم تعد موجودة.",
           flags: MessageFlags.Ephemeral,
         });
+
         return;
       }
 
       if (game.finished) {
         await interaction.reply({
-          content: "❌ انتهت هذه اللعبة.",
+          content:
+            "❌ انتهت هذه اللعبة.",
           flags: MessageFlags.Ephemeral,
         });
+
         return;
       }
 
@@ -444,60 +603,114 @@ client.on(Events.InteractionCreate, async (interaction) => {
         interaction.user.id !== game.playerO.id
       ) {
         await interaction.reply({
-          content: "❌ أنت لست أحد لاعبي هذه المباراة.",
+          content:
+            "❌ أنت لست أحد لاعبي هذه المباراة.",
           flags: MessageFlags.Ephemeral,
         });
+
         return;
       }
 
-      if (interaction.user.id !== game.turn) {
+      if (
+        interaction.user.id !== game.turn
+      ) {
         await interaction.deferUpdate();
         return;
       }
 
       const index = Number(indexText);
 
-      if (!Number.isInteger(index) || index < 0 || index > 8) {
+      if (
+        !Number.isInteger(index) ||
+        index < 0 ||
+        index > 8
+      ) {
         await interaction.reply({
-          content: "❌ حركة غير صالحة.",
+          content:
+            "❌ حركة غير صالحة.",
           flags: MessageFlags.Ephemeral,
         });
+
         return;
       }
 
       if (game.board[index]) {
         await interaction.reply({
-          content: "❌ هذا المربع مستخدم بالفعل.",
+          content:
+            "❌ هذا المربع مستخدم بالفعل.",
           flags: MessageFlags.Ephemeral,
         });
+
         return;
       }
 
-      const symbol = interaction.user.id === game.playerX.id ? "❌" : "⭕";
+      const symbol =
+        interaction.user.id === game.playerX.id
+          ? "❌"
+          : "⭕";
+
       game.board[index] = symbol;
 
-      const result = checkWinner(game.board);
+      const result =
+        checkWinner(game.board);
 
-      if (result === "❌" || result === "⭕") {
+      /*
+      |--------------------------------------------------------------------------
+      | Winner
+      |--------------------------------------------------------------------------
+      */
+
+      if (
+        result === "❌" ||
+        result === "⭕"
+      ) {
         game.finished = true;
 
-        const winner = result === "❌" ? game.playerX : game.playerO;
-        const loser = result === "❌" ? game.playerO : game.playerX;
+        const winner =
+          result === "❌"
+            ? game.playerX
+            : game.playerO;
+
+        const loser =
+          result === "❌"
+            ? game.playerO
+            : game.playerX;
+
         const winnerSymbol = result;
-        const loserSymbol = result === "❌" ? "⭕" : "❌";
 
-        // تسجيل الفوز في قاعدة بيانات فايربيس
-        await addWin(winner.id);
+        const loserSymbol =
+          result === "❌"
+            ? "⭕"
+            : "❌";
 
+        // تحديث رسالة اللعبة
         await interaction.update({
-          content: `🏁 **انتهت اللعبة!**\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
+          content:
+            `🏁 **انتهت اللعبة!**\n` +
+            `❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
+
           components: [
             ...createBoard(gameId),
-            ...createGameButtons(gameId, false),
+            ...createGameButtons(
+              gameId,
+              false
+            ),
           ],
         });
 
-        if (loser.id === SPECIAL_USER_ID) {
+        // تسجيل الفوز في Firebase
+        addWin(winner.id).catch(
+          (error) => {
+            console.error(
+              "Firebase win update failed:",
+              error
+            );
+          }
+        );
+
+        if (
+          loser.id === SPECIAL_USER_ID
+        ) {
           await interaction.channel.send({
             content:
               `🏆 **انتهت اللعبة!**\n\n` +
@@ -517,25 +730,48 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
       }
 
+      /*
+      |--------------------------------------------------------------------------
+      | Draw
+      |--------------------------------------------------------------------------
+      */
+
       if (result === "draw") {
         game.finished = true;
 
         await interaction.update({
-          content: `🤝 **تعادل!**\n\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
+          content:
+            `🤝 **تعادل!**\n\n` +
+            `❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
+
           components: [
             ...createBoard(gameId),
-            ...createGameButtons(gameId, false),
+            ...createGameButtons(
+              gameId,
+              false
+            ),
           ],
         });
 
         await interaction.channel.send({
-          content: `🤝 **انتهت اللعبة بالتعادل!**\n\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
+          content:
+            `🤝 **انتهت اللعبة بالتعادل!**\n\n` +
+            `❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
         });
 
         return;
       }
 
-      game.turn = game.turn === game.playerX.id ? game.playerO.id : game.playerX.id;
+      /*
+      |--------------------------------------------------------------------------
+      | Next Turn
+      |--------------------------------------------------------------------------
+      */
+
+      game.turn =
+        game.turn === game.playerX.id
+          ? game.playerO.id
+          : game.playerX.id;
 
       await interaction.update({
         content: getStatus(game),
@@ -545,15 +781,29 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return;
     }
 
-    if (interaction.customId.startsWith("xo-replay:")) {
-      const [, gameId] = interaction.customId.path ? interaction.customId.split(":") : interaction.customId.split(":");
+    /*
+    |--------------------------------------------------------------------------
+    | Replay
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      interaction.customId.startsWith(
+        "xo-replay:"
+      )
+    ) {
+      const [, gameId] =
+        interaction.customId.split(":");
+
       const game = games.get(gameId);
 
       if (!game) {
         await interaction.reply({
-          content: "❌ اللعبة غير موجودة.",
+          content:
+            "❌ اللعبة غير موجودة.",
           flags: MessageFlags.Ephemeral,
         });
+
         return;
       }
 
@@ -562,26 +812,38 @@ client.on(Events.InteractionCreate, async (interaction) => {
         interaction.user.id !== game.playerO.id
       ) {
         await interaction.reply({
-          content: "❌ أنت لست أحد لاعبي هذه المباراة.",
+          content:
+            "❌ أنت لست أحد لاعبي هذه المباراة.",
           flags: MessageFlags.Ephemeral,
         });
+
         return;
       }
 
       game.finished = true;
+
       await interaction.update({
         components: [
           ...createBoard(gameId),
-          ...createGameButtons(gameId, true),
+          ...createGameButtons(
+            gameId,
+            true
+          ),
         ],
       });
 
-      const newGameId = createGame(game.playerX, game.playerO);
-      const newGame = games.get(newGameId);
+      const newGameId = createGame(
+        game.playerX,
+        game.playerO
+      );
+
+      const newGame =
+        games.get(newGameId);
 
       await interaction.channel.send({
         content: getStatus(newGame),
-        components: createBoard(newGameId),
+        components:
+          createBoard(newGameId),
       });
 
       return;
@@ -589,22 +851,39 @@ client.on(Events.InteractionCreate, async (interaction) => {
   } catch (error) {
     console.error(
       "Interaction error:",
-      error.rawError ? JSON.stringify(error.rawError, null, 2) : error
+      error.rawError
+        ? JSON.stringify(
+            error.rawError,
+            null,
+            2
+          )
+        : error
     );
 
     try {
-      if (!interaction.replied && !interaction.deferred) {
+      if (
+        !interaction.replied &&
+        !interaction.deferred
+      ) {
         await interaction.reply({
-          content: "❌ حدث خطأ غير متوقع.",
+          content:
+            "❌ حدث خطأ غير متوقع.",
           flags: MessageFlags.Ephemeral,
         });
-      } else if (interaction.deferred && !interaction.replied) {
+      } else if (
+        interaction.deferred &&
+        !interaction.replied
+      ) {
         await interaction.editReply({
-          content: "❌ حدث خطأ غير متوقع.",
+          content:
+            "❌ حدث خطأ غير متوقع.",
         });
       }
     } catch (replyError) {
-      console.error("Failed to send error response:", replyError);
+      console.error(
+        "Failed to send error response:",
+        replyError
+      );
     }
   }
 });
