@@ -10,6 +10,7 @@ import {
   Routes,
   GatewayIntentBits,
   SlashCommandBuilder,
+  MessageFlags,
 } from "discord.js";
 
 const TOKEN = process.env.DISCORD_TOKEN;
@@ -293,7 +294,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (opponent.bot) {
         await interaction.reply({
           content: "❌ لا يمكنك اللعب ضد بوت.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
 
         return;
@@ -302,7 +303,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (opponent.id === creator.id) {
         await interaction.reply({
           content: "❌ لا يمكنك اللعب ضد نفسك.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
 
         return;
@@ -323,7 +324,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await interaction.reply({
           content:
             "❌ أحد اللاعبين موجود بالفعل في لعبة XO أخرى.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
 
         return;
@@ -369,7 +370,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (!game) {
         await interaction.reply({
           content: "❌ هذه اللعبة لم تعد موجودة.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
 
         return;
@@ -378,7 +379,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (game.finished) {
         await interaction.reply({
           content: "❌ انتهت هذه اللعبة.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
 
         return;
@@ -391,7 +392,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await interaction.reply({
           content:
             "❌ أنت لست أحد لاعبي هذه المباراة.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
 
         return;
@@ -400,7 +401,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (interaction.user.id !== game.turn) {
         await interaction.reply({
           content: "⏳ ليس دورك الآن.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
 
         return;
@@ -415,7 +416,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       ) {
         await interaction.reply({
           content: "❌ حركة غير صالحة.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
 
         return;
@@ -425,7 +426,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await interaction.reply({
           content:
             "❌ هذا المربع مستخدم بالفعل.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
 
         return;
@@ -533,7 +534,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (!game) {
         await interaction.reply({
           content: "❌ اللعبة غير موجودة.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
 
         return;
@@ -546,7 +547,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await interaction.reply({
           content:
             "❌ أنت لست أحد لاعبي هذه المباراة.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
 
         return;
@@ -583,7 +584,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (!game) {
         await interaction.reply({
           content: "❌ اللعبة غير موجودة.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
 
         return;
@@ -596,7 +597,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await interaction.reply({
           content:
             "❌ أنت لست أحد لاعبي هذه المباراة.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
 
         return;
@@ -624,7 +625,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       await interaction.reply({
         content:
           "❌ حدث خطأ غير متوقع.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
   }
