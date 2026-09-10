@@ -60,8 +60,11 @@ server.listen(PORT, "0.0.0.0", () => {
 let serviceAccount;
 if (process.env.FIREBASE_CONFIG_JSON) {
   serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG_JSON);
+  // إصلاح مشكلة الأسطر الجديدة في المفتاح الخاص لضمان المصادقة الصحيحة
+  if (serviceAccount.private_key) {
+    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+  }
 } else {
-  // يقرأ الملف إذا كنت تجارب البوت محلياً (ضع مسار ملفك هنا)
   serviceAccount = JSON.parse(fs.readFileSync("./firebase-key.json", "utf8"));
 }
 
