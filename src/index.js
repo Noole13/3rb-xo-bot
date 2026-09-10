@@ -315,6 +315,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     if (interaction.isChatInputCommand()) {
       if (interaction.commandName === "top") {
+        // تأجيل الرد فوراً لتجنب مشكلة انتهاء المهلة (3 ثواني) من ديسكورد
+        await interaction.deferReply();
+
         // جلب قائمة الأوائل المحدثة مباشرة من فايربيس
         const snapshot = await db.ref("leaderboard").once("value");
         const leaderboardData = snapshot.val() || {};
@@ -324,9 +327,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
           .slice(0, 3);
 
         if (sorted.length === 0) {
-          await interaction.reply({
+          await interaction.editReply({
             content: "📊 لا توجد انتصارات مسجلة حتى الآن.",
-            flags: MessageFlags.Ephemeral,
           });
           return;
         }
@@ -338,7 +340,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           desc += `${medals[index]} <@${userId}> — **${data.wins || 0}** فوز\n`;
         });
 
-        await interaction.reply({
+        await interaction.editReply({
           content: desc,
         });
 
@@ -584,9 +586,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
           flags: MessageFlags.Ephemeral,
         });
       } else if (interaction.deferred && !interaction.replied) {
-        await interaction.followUp({
+        await interaction.editReply({
           content: "❌ حدث خطأ غير متوقع.",
-          flags: MessageFlags.Ephemeral,
         });
       }
     } catch (replyError) {
