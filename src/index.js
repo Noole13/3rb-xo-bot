@@ -99,12 +99,16 @@ async function registerCommands() {
 |--------------------------------------------------------------------------
 */
 
-function createBoard(gameId, disabled = false) {
+function createBoard(gameId, userId = null, disabled = false) {
   const game = games.get(gameId);
 
   if (!game) {
     return [];
   }
+
+  // إذا لم يكن دور المستخدم الحالي، يتم تعطيل الأزرار مؤقتاً لكي لا يستطيع اللعب
+  const isNotMyTurn = userId && !game.finished && game.turn !== userId;
+  const shouldDisableAll = disabled || isNotMyTurn;
 
   const board = [];
 
@@ -122,7 +126,7 @@ function createBoard(gameId, disabled = false) {
               ? ButtonStyle.Primary
               : ButtonStyle.Secondary
         )
-        .setDisabled(disabled || Boolean(value))
+        .setDisabled(shouldDisableAll || Boolean(value))
     );
   }
 
@@ -153,18 +157,20 @@ function createBoard(gameId, disabled = false) {
 |--------------------------------------------------------------------------
 */
 
-function createGameButtons(gameId) {
+function createGameButtons(gameId, disabled = false) {
   return [
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`xo-replay:${gameId}`)
         .setLabel("🔄 لعب مرة أخرى")
-        .setStyle(ButtonStyle.Success),
+        .setStyle(ButtonStyle.Success)
+        .setDisabled(disabled),
 
       new ButtonBuilder()
         .setCustomId(`xo-end:${gameId}`)
         .setLabel("🛑 إنهاء")
         .setStyle(ButtonStyle.Danger)
+        .setDisabled(disabled)
     ),
   ];
 }
@@ -337,9 +343,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       const game = games.get(gameId);
 
+      // نعرض اللوحة بحيث تكون مفعلة لصاحب الدور (المنشئ X) ومعطلة للاخصم
       await interaction.reply({
         content: getStatus(game),
-        components: createBoard(gameId),
+        components: createBoard(gameId, creator.id),
       });
 
       return;
@@ -466,16 +473,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const winnerSymbol = result;
         const loserSymbol = result === "❌" ? "⭕" : "❌";
 
-        // تحديث رسالة اللعبة الأصلية بقفل الأزرار وإظهار حالة الانتهاء
         await interaction.update({
           content: `🏁 **انتهت اللعبة!**\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
           components: [
-            ...createBoard(gameId, true),
-            ...createGameButtons(gameId),
+            ...createBoard(gameId, null, true),
+            ...createGameButtons(gameId, false),
           ],
         });
 
-        // إرسال رسالة منفصلة وجديدة تماماً بالفائز والخاسر
         await interaction.channel.send({
           content:
             `🏆 **انتهت اللعبة!**\n\n` +
@@ -501,8 +506,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
             `❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
 
           components: [
-            ...createBoard(gameId, true),
-            ...createGameButtons(gameId),
+            ...createBoard(gameId, null, true),
+            ...createGameButtons(gameId, false),
           ],
         });
 
@@ -526,9 +531,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
           ? game.playerO.id
           : game.playerX.id;
 
+      // تحديث الرسالة بحيث تتقلب الأزرار وتصبح نشطة للاعب الجديد ومعطلة عن اللاعب الذي انتهى دورة
       await interaction.update({
         content: getStatus(game),
-        components: createBoard(gameId),
+        components: createBoard(gameId, game.turn),
       });
 
       return;
@@ -572,13 +578,24 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
       }
 
-      game.board = Array(9).fill(null);
-      game.turn = game.playerX.id;
-      game.finished = false;
-
+      game.finished = true;
       await interaction.update({
-        content: getStatus(game),
-        components: createBoard(gameId),
+        components: [
+          ...createBoard(gameId, null, true),
+          ...createGameButtons(gameId, true),
+        ],
+      });
+
+      const newGameId = createGame(
+        game.playerX,
+        game.playerO
+      );
+
+      const newGame = games.get(newGameId);
+
+      await interaction.channel.send({
+        content: getStatus(newGame),
+        components: createBoard(newGameId, newGame.turn),
       });
 
       return;
