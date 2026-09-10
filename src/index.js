@@ -458,11 +458,19 @@ client.on(Events.InteractionCreate, async (interaction) => {
             ? game.playerX
             : game.playerO;
 
+        const loser =
+          result === "❌"
+            ? game.playerO
+            : game.playerX;
+
+        const winnerSymbol = result;
+        const loserSymbol = result === "❌" ? "⭕" : "❌";
+
         await interaction.update({
           content:
             `🏆 **انتهت اللعبة!**\n\n` +
-            `الفائز: ${winner} ${result}\n\n` +
-            `❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
+            `👑 الفائز: ${winner} ${winnerSymbol}\n` +
+            `💤 الخاسر: ${loser} ${loserSymbol}`,
 
           components: [
             ...createBoard(gameId),
