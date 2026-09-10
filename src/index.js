@@ -320,10 +320,22 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         // جلب قائمة الأوائل المحدثة مباشرة من فايربيس
         const snapshot = await db.ref("leaderboard").once("value");
-        const leaderboardData = snapshot.val() || {};
+        const leaderboardData = snapshot.val();
 
+        if (!leaderboardData) {
+          await interaction.editReply({
+            content: "📊 لا توجد انتصارات مسجلة حتى الآن.",
+          });
+          return;
+        }
+
+        // ترتيب اللاعبين بدقة بناءً على هيكلة البيانات في فايربيس
         const sorted = Object.entries(leaderboardData)
-          .sort(([, a], [, b]) => (b.wins || 0) - (a.wins || 0))
+          .sort(([, a], [, b]) => {
+            const winsA = a && typeof a === "object" ? (a.wins || 0) : Number(a) || 0;
+            const winsB = b && typeof b === "object" ? (b.wins || 0) : Number(b) || 0;
+            return winsB - winsA;
+          })
           .slice(0, 3);
 
         if (sorted.length === 0) {
@@ -337,7 +349,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const medals = ["🥇", "🥈", "🥉"];
 
         sorted.forEach(([userId, data], index) => {
-          desc += `${medals[index]} <@${userId}> — **${data.wins || 0}** فوز\n`;
+          const wins = data && typeof data === "object" ? (data.wins || 0) : Number(data) || 0;
+          desc += `${medals[index]} <@${userId}> — **${wins}** فوز\n`;
         });
 
         await interaction.editReply({
@@ -533,7 +546,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
 
     if (interaction.customId.startsWith("xo-replay:")) {
-      const [, gameId] = interaction.customId.split(":");
+      const [, gameId] = interaction.customId.path ? interaction.customId.split(":") : interaction.customId.split(":");
       const game = games.get(gameId);
 
       if (!game) {
