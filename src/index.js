@@ -135,7 +135,7 @@ function createBoard(gameId) {
 
 /*
 |--------------------------------------------------------------------------
-| Game End Buttons
+| Game End Buttons (Replay Only)
 |--------------------------------------------------------------------------
 */
 
@@ -146,12 +146,6 @@ function createGameButtons(gameId, disabled = false) {
         .setCustomId(`xo-replay:${gameId}`)
         .setLabel("🔄 لعب مرة أخرى")
         .setStyle(ButtonStyle.Success)
-        .setDisabled(disabled),
-
-      new ButtonBuilder()
-        .setCustomId(`xo-end:${gameId}`)
-        .setLabel("🛑 إنهاء")
-        .setStyle(ButtonStyle.Danger)
         .setDisabled(disabled)
     ),
   ];
@@ -387,11 +381,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
 
       if (interaction.user.id !== game.turn) {
-        await interaction.reply({
-          content: "⏳ ليس دورك الآن.",
-          flags: MessageFlags.Ephemeral,
-        });
-
+        await interaction.deferUpdate();
         return;
       }
 
@@ -579,54 +569,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       });
 
       return;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | End Game
-    |--------------------------------------------------------------------------
-    */
-
-    if (
-      interaction.customId.startsWith(
-        "xo-end:"
-      )
-    ) {
-      const [, gameId] =
-        interaction.customId.split(":");
-
-      const game = games.get(gameId);
-
-      if (!game) {
-        await interaction.reply({
-          content: "❌ اللعبة غير موجودة.",
-          flags: MessageFlags.Ephemeral,
-        });
-
-        return;
-      }
-
-      if (
-        interaction.user.id !== game.playerX.id &&
-        interaction.user.id !== game.playerO.id
-      ) {
-        await interaction.reply({
-          content:
-            "❌ أنت لست أحد لاعبي هذه المباراة.",
-          flags: MessageFlags.Ephemeral,
-        });
-
-        return;
-      }
-
-      game.finished = true;
-
-      games.delete(gameId);
-
-      await interaction.update({
-        content: "🛑 **تم إنهاء لعبة XO.**",
-        components: [],
-      });
     }
   } catch (error) {
     console.error(
