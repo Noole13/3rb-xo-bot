@@ -291,25 +291,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
       }
 
-      const existingGame = [...games.values()].find(
-        (game) =>
-          !game.finished &&
+      // إنهاء أي لعبة قديمة عالقة لنفس اللاعبين تلقائياً لتجنب رسالة الخطأ
+      for (const [id, g] of games.entries()) {
+        if (
+          !g.finished &&
           (
-            game.playerX.id === creator.id ||
-            game.playerO.id === creator.id ||
-            game.playerX.id === opponent.id ||
-            game.playerO.id === opponent.id
+            g.playerX.id === creator.id ||
+            g.playerO.id === creator.id ||
+            g.playerX.id === opponent.id ||
+            g.playerO.id === opponent.id
           )
-      );
-
-      if (existingGame) {
-        await interaction.reply({
-          content:
-            "❌ أحد اللاعبين موجود بالفعل في لعبة XO أخرى.",
-          flags: MessageFlags.Ephemeral,
-        });
-
-        return;
+        ) {
+          g.finished = true;
+          games.delete(id);
+        }
       }
 
       const gameId = createGame(
