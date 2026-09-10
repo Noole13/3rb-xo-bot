@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import fs from "node:fs";
 
 import {
   ActionRowBuilder,
@@ -55,6 +56,43 @@ const client = new Client({
 
 /*
 |--------------------------------------------------------------------------
+| Database (Leaderboard)
+|--------------------------------------------------------------------------
+*/
+
+const DB_FILE = "./leaderboard.json";
+
+function loadLeaderboard() {
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      return JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
+    }
+  } catch (e) {
+    console.error("Error loading leaderboard:", e);
+  }
+  return {};
+}
+
+function saveLeaderboard(data) {
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), "utf8");
+  } catch (e) {
+    console.error("Error saving leaderboard:", e);
+  }
+}
+
+const leaderboard = loadLeaderboard();
+
+function addWin(userId) {
+  if (!leaderboard[userId]) {
+    leaderboard[userId] = { wins: 0 };
+  }
+  leaderboard[userId].wins += 1;
+  saveLeaderboard(leaderboard);
+}
+
+/*
+|--------------------------------------------------------------------------
 | Games
 |--------------------------------------------------------------------------
 */
@@ -63,7 +101,7 @@ const games = new Map();
 
 /*
 |--------------------------------------------------------------------------
-| Slash Command
+| Slash Commands
 |--------------------------------------------------------------------------
 */
 
@@ -77,9 +115,13 @@ const xoCommand = new SlashCommandBuilder()
       .setRequired(true)
   );
 
+const topCommand = new SlashCommandBuilder()
+  .setName("top")
+  .setDescription("عرض أفضل 3 لاعبين في لعبة XO");
+
 /*
 |--------------------------------------------------------------------------
-| Register Slash Command
+| Register Slash Commands
 |--------------------------------------------------------------------------
 */
 
@@ -87,10 +129,10 @@ const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 async function registerCommands() {
   await rest.put(Routes.applicationCommands(CLIENT_ID), {
-    body: [xoCommand.toJSON()],
+    body: [xoCommand.toJSON(), topCommand.toJSON()],
   });
 
-  console.log("Slash command /xo registered successfully.");
+  console.log("Slash commands registered successfully.");
 }
 
 /*
@@ -135,7 +177,7 @@ function createBoard(gameId) {
 
 /*
 |--------------------------------------------------------------------------
-| Game End Buttons (Replay Only)
+| Game Buttons (Replay Only)
 |--------------------------------------------------------------------------
 */
 
@@ -257,20 +299,43 @@ client.on(Events.InteractionCreate, async (interaction) => {
   try {
     /*
     |--------------------------------------------------------------------------
-    | /xo
+    | Slash Commands (/xo and /top)
     |--------------------------------------------------------------------------
     */
 
     if (interaction.isChatInputCommand()) {
+      if (interaction.commandName === "top") {
+        const sorted = Object.entries(leaderboard)
+          .sort(([, a], [, b]) => b.wins - a.wins)
+          .slice(0, 3);
+
+        if (sorted.length === 0) {
+          await interaction.reply({
+            content: "📊 لا توجد انتصارات مسجلة حتى الآن.",
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
+        }
+
+        let desc = "🏆 **أفضل 3 لاعبين في لعبة XO**\n\n";
+        const medals = ["🥇", "🥈", "🥉"];
+
+        sorted.forEach(([userId, data], index) => {
+          desc += `${medals[index]} <@${userId}> — **${data.wins}** فوز\n`;
+        });
+
+        await interaction.reply({
+          content: desc,
+        });
+
+        return;
+      }
+
       if (interaction.commandName !== "xo") {
         return;
       }
 
-      const opponent = interaction.options.getUser(
-        "player",
-        true
-      );
-
+      const opponent = interaction.options.getUser("player", true);
       const creator = interaction.user;
 
       if (opponent.bot) {
@@ -278,7 +343,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
           content: "❌ لا يمكنك اللعب ضد بوت.",
           flags: MessageFlags.Ephemeral,
         });
-
         return;
       }
 
@@ -287,11 +351,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
           content: "❌ لا يمكنك اللعب ضد نفسك.",
           flags: MessageFlags.Ephemeral,
         });
-
         return;
       }
 
-      // إنهاء أي لعبة قديمة عالقة لنفس اللاعبين تلقائياً لتجنب رسالة الخطأ
       for (const [id, g] of games.entries()) {
         if (
           !g.finished &&
@@ -307,11 +369,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
       }
 
-      const gameId = createGame(
-        creator,
-        opponent
-      );
-
+      const gameId = createGame(creator, opponent);
       const game = games.get(gameId);
 
       await interaction.reply({
@@ -332,16 +390,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | XO Board Button
-    |--------------------------------------------------------------------------
-    */
-
     if (interaction.customId.startsWith("xo:")) {
-      const [, gameId, indexText] =
-        interaction.customId.split(":");
-
+      const [, gameId, indexText] = interaction.customId.split(":");
       const game = games.get(gameId);
 
       if (!game) {
@@ -349,7 +399,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
           content: "❌ هذه اللعبة لم تعد موجودة.",
           flags: MessageFlags.Ephemeral,
         });
-
         return;
       }
 
@@ -358,7 +407,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
           content: "❌ انتهت هذه اللعبة.",
           flags: MessageFlags.Ephemeral,
         });
-
         return;
       }
 
@@ -367,11 +415,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
         interaction.user.id !== game.playerO.id
       ) {
         await interaction.reply({
-          content:
-            "❌ أنت لست أحد لاعبي هذه المباراة.",
+          content: "❌ أنت لست أحد لاعبي هذه المباراة.",
           flags: MessageFlags.Ephemeral,
         });
-
         return;
       }
 
@@ -380,64 +426,39 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
       }
 
-      const index = Number(indexText);
+    const index = Number(indexText);
 
-      if (
-        !Number.isInteger(index) ||
-        index < 0 ||
-        index > 8
-      ) {
-        await interaction.reply({
-          content: "❌ حركة غير صالحة.",
-          flags: MessageFlags.Ephemeral,
-        });
+    if (!Number.isInteger(index) || index < 0 || index > 8) {
+      await interaction.reply({
+        content: "❌ حركة غير صالحة.",
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
 
-        return;
-      }
+    if (game.board[index]) {
+      await interaction.reply({
+        content: "❌ هذا المربع مستخدم بالفعل.",
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
 
-      if (game.board[index]) {
-        await interaction.reply({
-          content:
-            "❌ هذا المربع مستخدم بالفعل.",
-          flags: MessageFlags.Ephemeral,
-        });
-
-        return;
-      }
-
-      const symbol =
-        interaction.user.id === game.playerX.id
-          ? "❌"
-          : "⭕";
-
+      const symbol = interaction.user.id === game.playerX.id ? "❌" : "⭕";
       game.board[index] = symbol;
 
       const result = checkWinner(game.board);
 
-      /*
-      |--------------------------------------------------------------------------
-      | Winner
-      |--------------------------------------------------------------------------
-      */
-
-      if (
-        result === "❌" ||
-        result === "⭕"
-      ) {
+      if (result === "❌" || result === "⭕") {
         game.finished = true;
 
-        const winner =
-          result === "❌"
-            ? game.playerX
-            : game.playerO;
-
-        const loser =
-          result === "❌"
-            ? game.playerO
-            : game.playerX;
-
+        const winner = result === "❌" ? game.playerX : game.playerO;
+        const loser = result === "❌" ? game.playerO : game.playerX;
         const winnerSymbol = result;
         const loserSymbol = result === "❌" ? "⭕" : "❌";
+
+        // تسجيل الفوز وحفظه في الملف
+        addWin(winner.id);
 
         await interaction.update({
           content: `🏁 **انتهت اللعبة!**\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
@@ -457,20 +478,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | Draw
-      |--------------------------------------------------------------------------
-      */
-
       if (result === "draw") {
         game.finished = true;
 
         await interaction.update({
-          content:
-            `🤝 **تعادل!**\n\n` +
-            `❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
-
+          content: `🤝 **تعادل!**\n\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
           components: [
             ...createBoard(gameId),
             ...createGameButtons(gameId, false),
@@ -478,24 +490,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
 
         await interaction.channel.send({
-          content:
-            `🤝 **انتهت اللعبة بالتعادل!**\n\n` +
-            `❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
+          content: `🤝 **انتهت اللعبة بالتعادل!**\n\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
         });
 
         return;
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | Change Turn
-      |--------------------------------------------------------------------------
-      */
-
-      game.turn =
-        game.turn === game.playerX.id
-          ? game.playerO.id
-          : game.playerX.id;
+      game.turn = game.turn === game.playerX.id ? game.playerO.id : game.playerX.id;
 
       await interaction.update({
         content: getStatus(game),
@@ -505,20 +506,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Replay
-    |--------------------------------------------------------------------------
-    */
-
-    if (
-      interaction.customId.startsWith(
-        "xo-replay:"
-      )
-    ) {
-      const [, gameId] =
-        interaction.customId.split(":");
-
+    if (interaction.customId.startsWith("xo-replay:")) {
+      const [, gameId] = interaction.customId.split(":");
       const game = games.get(gameId);
 
       if (!game) {
@@ -526,7 +515,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
           content: "❌ اللعبة غير موجودة.",
           flags: MessageFlags.Ephemeral,
         });
-
         return;
       }
 
@@ -535,11 +523,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
         interaction.user.id !== game.playerO.id
       ) {
         await interaction.reply({
-          content:
-            "❌ أنت لست أحد لاعبي هذه المباراة.",
+          content: "❌ أنت لست أحد لاعبي هذه المباراة.",
           flags: MessageFlags.Ephemeral,
         });
-
         return;
       }
 
@@ -551,11 +537,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         ],
       });
 
-      const newGameId = createGame(
-        game.playerX,
-        game.playerO
-      );
-
+      const newGameId = createGame(game.playerX, game.playerO);
       const newGame = games.get(newGameId);
 
       await interaction.channel.send({
