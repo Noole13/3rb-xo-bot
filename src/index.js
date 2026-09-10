@@ -114,7 +114,7 @@ function createBoard(gameId) {
     board.push(
       new ButtonBuilder()
         .setCustomId(`xo:${gameId}:${i}`)
-        .setLabel(value || " ")
+        .setLabel(value ? value : "➖")
         .setStyle(
           value === "❌"
             ? ButtonStyle.Danger
