@@ -14,6 +14,10 @@ import {
   MessageFlags,
 } from "discord.js";
 
+// استدعاء حزمة فايربيس بصيغة ES Modules
+import { initializeApp, cert } from "firebase-admin/app";
+import { getDatabase } from "firebase-admin/database";
+
 const TOKEN = process.env.DISCORD_TOKEN;
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const PORT = process.env.PORT || 10000;
@@ -48,6 +52,44 @@ server.listen(PORT, "0.0.0.0", () => {
 
 /*
 |--------------------------------------------------------------------------
+| Firebase Setup (Realtime Database)
+|--------------------------------------------------------------------------
+*/
+
+// قراءة بيانات المفتاح السري من متغيرات البيئة على Render أو من الملف محلياً للتجربة
+let serviceAccount;
+if (process.env.FIREBASE_CONFIG_JSON) {
+  serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG_JSON);
+} else {
+  // يقرأ الملف إذا كنت تجارب البوت محلياً (ضع مسار ملفك هنا)
+  serviceAccount = JSON.parse(fs.readFileSync("./firebase-key.json", "utf8"));
+}
+
+initializeApp({
+  credential: cert(serviceAccount),
+  databaseURL: "https://rbgames-4ee8e-default-rtdb.firebaseio.com",
+});
+
+const db = getDatabase();
+
+/*
+|--------------------------------------------------------------------------
+| Database Helper Functions
+|--------------------------------------------------------------------------
+*/
+
+// زيادة عدد الانتصارات في الفايربيس
+async function addWin(userId) {
+  try {
+    const userWinsRef = db.ref(`leaderboard/${userId}/wins`);
+    await userWinsRef.transaction((currentWins) => (currentWins || 0) + 1);
+  } catch (error) {
+    console.error("Error updating win in Firebase:", error);
+  }
+}
+
+/*
+|--------------------------------------------------------------------------
 | Discord Client
 |--------------------------------------------------------------------------
 */
@@ -55,43 +97,6 @@ server.listen(PORT, "0.0.0.0", () => {
 const client = new Client({
   intents: [GatewayIntentBits.Guilds],
 });
-
-/*
-|--------------------------------------------------------------------------
-| Database (Leaderboard)
-|--------------------------------------------------------------------------
-*/
-
-const DB_FILE = "./leaderboard.json";
-
-function loadLeaderboard() {
-  try {
-    if (fs.existsSync(DB_FILE)) {
-      return JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
-    }
-  } catch (e) {
-    console.error("Error loading leaderboard:", e);
-  }
-  return {};
-}
-
-function saveLeaderboard(data) {
-  try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), "utf8");
-  } catch (e) {
-    console.error("Error saving leaderboard:", e);
-  }
-}
-
-const leaderboard = loadLeaderboard();
-
-function addWin(userId) {
-  if (!leaderboard[userId]) {
-    leaderboard[userId] = { wins: 0 };
-  }
-  leaderboard[userId].wins += 1;
-  saveLeaderboard(leaderboard);
-}
 
 /*
 |--------------------------------------------------------------------------
@@ -307,8 +312,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     if (interaction.isChatInputCommand()) {
       if (interaction.commandName === "top") {
-        const sorted = Object.entries(leaderboard)
-          .sort(([, a], [, b]) => b.wins - a.wins)
+        // جلب قائمة الأوائل المحدثة مباشرة من فايربيس
+        const snapshot = await db.ref("leaderboard").once("value");
+        const leaderboardData = snapshot.val() || {};
+
+        const sorted = Object.entries(leaderboardData)
+          .sort(([, a], [, b]) => (b.wins || 0) - (a.wins || 0))
           .slice(0, 3);
 
         if (sorted.length === 0) {
@@ -323,7 +332,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const medals = ["🥇", "🥈", "🥉"];
 
         sorted.forEach(([userId, data], index) => {
-          desc += `${medals[index]} <@${userId}> — **${data.wins}** فوز\n`;
+          desc += `${medals[index]} <@${userId}> — **${data.wins || 0}** فوز\n`;
         });
 
         await interaction.reply({
@@ -459,8 +468,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const winnerSymbol = result;
         const loserSymbol = result === "❌" ? "⭕" : "❌";
 
-        // تسجيل الفوز
-        addWin(winner.id);
+        // تسجيل الفوز في قاعدة بيانات فايربيس
+        await addWin(winner.id);
 
         await interaction.update({
           content: `🏁 **انتهت اللعبة!**\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
@@ -470,7 +479,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
           ],
         });
 
-        // التحقق مما إذا كان الخاسر هو صاحب الآيدي المحدد والفائز شخص آخر (يظهر منشن بدلاً من الآيدي)
         if (loser.id === SPECIAL_USER_ID) {
           await interaction.channel.send({
             content:
