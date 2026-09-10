@@ -615,18 +615,23 @@ client.on(Events.InteractionCreate, async (interaction) => {
   } catch (error) {
     console.error(
       "Interaction error:",
-      error
+      error.rawError ? JSON.stringify(error.rawError, null, 2) : error
     );
 
-    if (
-      !interaction.replied &&
-      !interaction.deferred
-    ) {
-      await interaction.reply({
-        content:
-          "❌ حدث خطأ غير متوقع.",
-        flags: MessageFlags.Ephemeral,
-      });
+    try {
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: "❌ حدث خطأ غير متوقع.",
+          flags: MessageFlags.Ephemeral,
+        });
+      } else if (interaction.deferred && !interaction.replied) {
+        await interaction.followUp({
+          content: "❌ حدث خطأ غير متوقع.",
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+    } catch (replyError) {
+      console.error("Failed to send error response:", replyError);
     }
   }
 });
