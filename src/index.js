@@ -1,6 +1,5 @@
 import { createServer } from "node:http";
-import { initializeApp } from "firebase/app";
-import { getDatabase, ref, get, set } from "firebase/database";
+import admin from "firebase-admin";
 
 import {
   ActionRowBuilder,
@@ -29,16 +28,29 @@ if (!CLIENT_ID) {
 
 /*
 |--------------------------------------------------------------------------
-| Firebase Initialization (Public Database URL)
+| Firebase Initialization (Firebase-Admin)
 |--------------------------------------------------------------------------
 */
 
-const firebaseConfig = {
-  databaseURL: process.env.FIREBASE_DATABASE_URL || "https://rbgames-4ee8e-default-rtdb.firebaseio.com/",
-};
+if (!admin.apps.length) {
+  // إذا كانت المتغيرات السرية موجودة، يتم التهيئة بها، وإلا سيتم استخدام الرابط العام فقط
+  const credentialConfig = process.env.FIREBASE_PRIVATE_KEY
+    ? {
+        credential: admin.credential.cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        }),
+      }
+    : {};
 
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getDatabase(firebaseApp);
+  admin.initializeApp({
+    ...credentialConfig,
+    databaseURL: process.env.FIREBASE_DATABASE_URL || "https://rbgames-4ee8e-default-rtdb.firebaseio.com/",
+  });
+}
+
+const db = admin.database();
 
 /*
 |--------------------------------------------------------------------------
@@ -70,21 +82,21 @@ const client = new Client({
 
 /*
 |--------------------------------------------------------------------------
-| Database (Firebase Leaderboard Functions)
+| Database (Firebase Admin Leaderboard Functions)
 |--------------------------------------------------------------------------
 */
 
 async function addWin(userId) {
   try {
-    const userRef = ref(db, `leaderboard/${userId}`);
-    const snapshot = await get(userRef);
+    const userRef = db.ref(`leaderboard/${userId}`);
+    const snapshot = await userRef.once("value");
     
     let currentWins = 0;
     if (snapshot.exists()) {
       currentWins = snapshot.val().wins || 0;
     }
 
-    await set(userRef, {
+    await userRef.set({
       wins: currentWins + 1,
     });
   } catch (e) {
@@ -309,8 +321,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await interaction.deferReply();
 
         try {
-          const leaderboardRef = ref(db, "leaderboard");
-          const snapshot = await get(leaderboardRef);
+          const leaderboardRef = db.ref("leaderboard");
+          const snapshot = await leaderboardRef.once("value");
 
           if (!snapshot.exists()) {
             await interaction.editReply({
