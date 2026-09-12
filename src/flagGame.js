@@ -215,7 +215,7 @@ export async function startFlagQuiz(message) {
 
                 collector.stop();
 
-                // إرسال رسالة الفوز عبر الإمبد المطلوب
+                // إرسال رسالة الفوز عبر الإمبد
                 const winEmbed = new EmbedBuilder()
                     .setColor(0x28c7a6)
                     .setDescription(
@@ -230,9 +230,20 @@ export async function startFlagQuiz(message) {
             }
         });
 
-        collector.on('end', collected => {
+        collector.on('end', async collected => {
             if (!answered) {
-                message.channel.send(`⏰ انتهى الوقت! للأسف لم يحرص أحد على الإجابة.\nالجواب الصحيح كان: **${flagItem.name}** ❌`);
+                // إرسال إمبد انتهاء الوقت بنفس التنسيق المطلوب
+                const timeoutEmbed = new EmbedBuilder()
+                    .setColor(0xef4444)
+                    .setDescription(
+                        `انتهى الوقت! ⏰\n` +
+                        `الجواب كان: **${flagItem.name}**`
+                    )
+                    .setThumbnail(smallFlagUrl);
+
+                await message.channel.send({
+                    embeds: [timeoutEmbed]
+                });
             }
         });
 
