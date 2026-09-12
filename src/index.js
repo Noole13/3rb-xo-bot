@@ -90,9 +90,9 @@ const client = new Client({
 |--------------------------------------------------------------------------
 */
 
-async function addWin(userId) {
+async function addWin(guildId, userId) {
   try {
-    const userRef = ref(db, `leaderboard/${userId}`);
+    const userRef = ref(db, `guilds/${guildId}/leaderboard/${userId}`);
     const snapshot = await get(userRef);
 
     let currentWins = 0;
@@ -269,7 +269,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await interaction.deferReply();
 
         try {
-          const leaderboardRef = ref(db, "leaderboard");
+          const leaderboardRef = ref(db, `guilds/${interaction.guildId}/leaderboard`);
           const snapshot = await get(leaderboardRef);
 
           if (!snapshot.exists()) {
@@ -543,7 +543,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           */
 
           if (!winner.bot) {
-            await addWin(winner.id);
+            await addWin(interaction.guildId, winner.id);
           }
 
           /*
