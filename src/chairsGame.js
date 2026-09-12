@@ -29,14 +29,20 @@ export function startChairGame(messageOrInteraction, clientUser) {
   return { success: true, gameData };
 }
 
-// دالة توليد أزرار مرحلة التسجيل
+// دالة توليد زر الانضمام العام (يظهر للجميع)
 export function getRecruitmentComponents() {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId("chair_join")
       .setLabel("انضمام للعبة")
       .setStyle(ButtonStyle.Success)
-      .setEmoji("👥"),
+      .setEmoji("👥")
+  );
+}
+
+// دالة توليد أزرار التحكم الخاصة بصاحب اللعبة فقط (تظهر بشكل سري Ephemeral)
+export function getHostControlComponents() {
+  return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId("chair_start")
       .setLabel("بدء اللعبة")
@@ -62,7 +68,7 @@ export function getRecruitmentEmbed(gameData) {
   return new EmbedBuilder()
     .setColor("#5865F2")
     .setTitle("🪑 لعبة الكراسي الموسيقية")
-    .setDescription("اضغط على زر **انضمام** للمشاركة في اللعبة!\nعند اكتمال العدد، يمكن للمنظم بدء اللعبة.")
+    .setDescription("اضغط على زر **انضمام** للمشاركة في اللعبة!\nصاحب اللعبة لديه أزرار التحكم (بدء / إلغاء) في رسالته الخاصة.")
     .addFields(
       { name: "👥 عدد اللاعبين المشاركين", value: `${gameData.players.size}`, inline: true },
       { name: "⏳ حالة اللعبة", value: "في انتظار انضمام اللاعبين...", inline: false },
@@ -143,10 +149,7 @@ export async function runNextRound(channel, gameData, addWinFunction, guildId) {
       let survivorsText = survivors.length > 0 ? survivors.map((id) => `• <@${id}>`).join("\n") : "لا أحد!";
       let eliminatedText = eliminated.length > 0 ? eliminated.map((id) => `• <@${id}>`).join("\n") : "لا أحد (الجميع تأخروا أو لم يضغطوا)!";
 
-      // إذا خرج الجميع في هذه الجولة بشكل مفاجئ، نختار عشوائياً أو نعيد الجولة، لكن هنا سنقوم بتصفية من لم يضغط
       if (survivors.length === 0 && gameData.activePlayersInRound.length > 0) {
-        // لو لم يضغط أحد أبداً، نعتبر أول من انضم أو نقوم بعمل جولة تدارك، أو يتم إقصاء الجميع عدا واحد عشوائي
-        // للأمان: إذا لم يضغط أحد، نختار شخصاً عشوائياً لينجو والباقي للإقصاء
         const randomSurvivor = gameData.activePlayersInRound[Math.floor(Math.random() * gameData.activePlayersInRound.length)];
         gameData.activePlayersInRound = [randomSurvivor];
       }
