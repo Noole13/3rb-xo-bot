@@ -1,106 +1,48 @@
-      if (interaction.commandName === "top") {
-        await interaction.deferReply();
+import { ref, get, update } from "firebase/database";
 
-        try {
-          const selectedGame = interaction.options.getString("game") || "all";
-          const data = await getGlobalLeaderboard(db, interaction.guildId);
+/**
+ * إضافة فوز أو نقطة للاعب في لعبة معينة ضمن السيرفر
+ * @param {import("firebase/database").Database} db - قاعدة بيانات فايربيس
+ * @param {string} guildId - معرف السيرفر
+ * @param {string} userId - معرف اللاعب
+ * @param {string} gameName - اسم اللعبة (xo, chairs, capitals, general, flags)
+ */
+export async function addGameWin(db, guildId, userId, gameName) {
+  try {
+    const userScoreRef = ref(db, `scores/${guildId}/${userId}/${gameName}`);
+    const snapshot = await get(userScoreRef);
+    
+    let currentScore = 0;
+    if (snapshot.exists()) {
+      currentScore = snapshot.val();
+    }
 
-          if (!data) {
-            await interaction.editReply({
-              content: "📊 لا توجد أي انتصارات أو نقاط مسجلة في السيرفر حتى الآن.",
-            });
-            return;
-          }
+    const updates = {};
+    updates[`scores/${guildId}/${userId}/${gameName}`] = currentScore + 1;
+    
+    await update(ref(db), updates);
+  } catch (error) {
+    console.error("Error updating score in Firebase:", error);
+  }
+}
 
-          const gamesList = {
-            xo: "❌ ⭕ لعبة XO",
-            chairs: "🪑 لعبة الكراسي",
-            capitals: "🌍 لعبة العواصم",
-            general: "🧠 الأسئلة العامة",
-            flags: "🏴 لعبة الأعلام",
-          };
+/**
+ * جلب لوحة الشرف الشاملة لجميع ألعاب السيرفر
+ * @param {import("firebase/database").Database} db - قاعدة بيانات فايربيس
+ * @param {string} guildId - معرف السيرفر
+ * @returns {Promise<Object|null>}
+ */
+export async function getGlobalLeaderboard(db, guildId) {
+  try {
+    const guildScoresRef = ref(db, `scores/${guildId}`);
+    const snapshot = await get(guildScoresRef);
 
-          const embed = new EmbedBuilder()
-            .setColor(0xF1C40F)
-            .setTimestamp();
-
-          // إذا اختار لعبة معينة
-          if (selectedGame !== "all") {
-            const gameTitle = gamesList[selectedGame];
-            embed.setTitle(`🏆 لوحة شرف ${gameTitle}`);
-            embed.setDescription(`أفضل اللاعبين في لعبة **${gameTitle}** على مستوى السيرفر:`);
-
-            const rankedPlayers = Object.entries(data)
-              .map(([userId, userGames]) => ({
-                userId,
-                score: userGames[selectedGame] || 0,
-              }))
-              .filter((item) => item.score > 0)
-              .sort((a, b) => b.score - a.score)
-              .slice(0, 10); // عرض أفضل 10 لاعبين لتلك اللعبة المحددة
-
-            if (rankedPlayers.length === 0) {
-              await interaction.editReply({
-                content: `📊 لا توجد انتصارات مسجلة في **${gameTitle}** حتى الآن.`,
-              });
-              return;
-            }
-
-            const medals = ["🥇", "🥈", "🥉"];
-            let fieldText = "";
-
-            rankedPlayers.forEach((player, index) => {
-              const rankIcon = medals[index] || `\`#${index + 1}\``;
-              fieldText += `${rankIcon} <@${player.userId}> — **${player.score}** فوز\n`;
-            });
-
-            embed.addFields({ name: "الترتيب", value: fieldText, inline: false });
-
-          } else {
-            // إذا اختار عرض جميع الألعاب
-            embed.setTitle("🏆 لوحة الشرف الشاملة لألعاب السيرفر");
-            embed.setDescription("إليك ترتيبيات اللاعبين وأفضل الهدافين في مختلف ألعاب البوت:");
-
-            let hasAnyScore = false;
-
-            for (const [gameKey, gameTitle] of Object.entries(gamesList)) {
-              const rankedPlayers = Object.entries(data)
-                .map(([userId, userGames]) => ({
-                  userId,
-                  score: userGames[gameKey] || 0,
-                }))
-                .filter((item) => item.score > 0)
-                .sort((a, b) => b.score - a.score)
-                .slice(0, 3); // أفضل 3 لاعبين لكل لعبة
-
-              if (rankedPlayers.length > 0) {
-                hasAnyScore = true;
-                const medals = ["🥇", "🥈", "🥉"];
-                let fieldText = "";
-
-                rankedPlayers.forEach((player, index) => {
-                  fieldText += `${medals[index]} <@${player.userId}> — **${player.score}** فوز\n`;
-                });
-
-                embed.addFields({ name: gameTitle, value: fieldText, inline: false });
-              }
-            }
-
-            if (!hasAnyScore) {
-              await interaction.editReply({
-                content: "📊 لا توجد نتائج كافية لعرضها في لوحة الشرف حتى الآن.",
-              });
-              return;
-            }
-          }
-
-          await interaction.editReply({ embeds: [embed] });
-        } catch (dbError) {
-          console.error("Error fetching global leaderboard:", dbError);
-          await interaction.editReply({
-            content: "❌ حدث خطأ أثناء جلب لوحة الشرف.",
-          });
-        }
-
-        return;
-      }
+    if (snapshot.exists()) {
+      return snapshot.val();
+    }
+    return null;
+  } catch (error) {
+    console.error("Error fetching global leaderboard from Firebase:", error);
+    return null;
+  }
+}
