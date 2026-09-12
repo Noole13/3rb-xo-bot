@@ -36,12 +36,14 @@ if (!CLIENT_ID) {
 
 /*
 |--------------------------------------------------------------------------
-| Firebase Initialization (Web SDK - No Admin Keys Needed)
+| Firebase Initialization
 |--------------------------------------------------------------------------
 */
 
 const firebaseConfig = {
-  databaseURL: process.env.FIREBASE_DATABASE_URL || "https://rbgames-4ee8e-default-rtdb.firebaseio.com/",
+  databaseURL:
+    process.env.FIREBASE_DATABASE_URL ||
+    "https://rbgames-4ee8e-default-rtdb.firebaseio.com/",
 };
 
 const firebaseApp = initializeApp(firebaseConfig);
@@ -85,8 +87,9 @@ async function addWin(userId) {
   try {
     const userRef = ref(db, `leaderboard/${userId}`);
     const snapshot = await get(userRef);
-    
+
     let currentWins = 0;
+
     if (snapshot.exists()) {
       currentWins = snapshot.val().wins || 0;
     }
@@ -161,11 +164,17 @@ client.on(Events.InteractionCreate, async (interaction) => {
   try {
     /*
     |--------------------------------------------------------------------------
-    | Slash Commands (/xo and /top)
+    | Slash Commands
     |--------------------------------------------------------------------------
     */
 
     if (interaction.isChatInputCommand()) {
+      /*
+      |--------------------------------------------------------------------------
+      | /top
+      |--------------------------------------------------------------------------
+      */
+
       if (interaction.commandName === "top") {
         await interaction.deferReply();
 
@@ -177,22 +186,29 @@ client.on(Events.InteractionCreate, async (interaction) => {
             await interaction.editReply({
               content: "📊 لا توجد انتصارات مسجلة حتى الآن.",
             });
+
             return;
           }
 
           const data = snapshot.val();
+
           const sorted = Object.entries(data)
-            .sort(([, a], [, b]) => (b.wins || 0) - (a.wins || 0))
+            .sort(
+              ([, a], [, b]) =>
+                (b.wins || 0) - (a.wins || 0)
+            )
             .slice(0, 3);
 
           if (sorted.length === 0) {
             await interaction.editReply({
               content: "📊 لا توجد انتصارات مسجلة حتى الآن.",
             });
+
             return;
           }
 
           let desc = "🏆 **أفضل 3 لاعبين في لعبة XO**\n\n";
+
           const medals = ["🥇", "🥈", "🥉"];
 
           sorted.forEach(([userId, userData], index) => {
@@ -203,7 +219,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
             content: desc,
           });
         } catch (dbError) {
-          console.error("Error fetching leaderboard from Firebase:", dbError);
+          console.error(
+            "Error fetching leaderboard from Firebase:",
+            dbError
+          );
+
           await interaction.editReply({
             content: "❌ حدث خطأ أثناء جلب لوحة الشرف.",
           });
@@ -211,6 +231,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         return;
       }
+
+      /*
+      |--------------------------------------------------------------------------
+      | /xo
+      |--------------------------------------------------------------------------
+      */
 
       if (interaction.commandName !== "xo") {
         return;
@@ -228,8 +254,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
           content: "❌ لا يمكنك اللعب ضد نفسك.",
           flags: MessageFlags.Ephemeral,
         });
+
         return;
       }
+
+      /*
+      |--------------------------------------------------------------------------
+      | Remove old games for these players
+      |--------------------------------------------------------------------------
+      */
 
       for (const [id, g] of games.entries()) {
         if (
@@ -245,6 +278,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
           games.delete(id);
         }
       }
+
+      /*
+      |--------------------------------------------------------------------------
+      | Create Game
+      |--------------------------------------------------------------------------
+      */
 
       const gameId = createGame(creator, opponent);
       const game = games.get(gameId);
@@ -267,8 +306,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return;
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | XO Board Buttons
+    |--------------------------------------------------------------------------
+    */
+
     if (interaction.customId.startsWith("xo:")) {
-      const [, gameId, indexText] = interaction.customId.split(":");
+      const [, gameId, indexText] =
+        interaction.customId.split(":");
+
       const game = games.get(gameId);
 
       if (!game) {
@@ -276,6 +323,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           content: "❌ هذه اللعبة لم تعد موجودة.",
           flags: MessageFlags.Ephemeral,
         });
+
         return;
       }
 
@@ -284,8 +332,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
           content: "❌ انتهت هذه اللعبة.",
           flags: MessageFlags.Ephemeral,
         });
+
         return;
       }
+
+      /*
+      |--------------------------------------------------------------------------
+      | Check Player
+      |--------------------------------------------------------------------------
+      */
 
       if (
         interaction.user.id !== game.playerX.id &&
@@ -295,8 +350,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
           content: "❌ أنت لست أحد لاعبي هذه المباراة.",
           flags: MessageFlags.Ephemeral,
         });
+
         return;
       }
+
+      /*
+      |--------------------------------------------------------------------------
+      | Check Turn
+      |--------------------------------------------------------------------------
+      */
 
       if (interaction.user.id !== game.turn) {
         await interaction.deferUpdate();
@@ -305,11 +367,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       const index = Number(indexText);
 
-      if (!Number.isInteger(index) || index < 0 || index > 8) {
+      if (
+        !Number.isInteger(index) ||
+        index < 0 ||
+        index > 8
+      ) {
         await interaction.reply({
           content: "❌ حركة غير صالحة.",
           flags: MessageFlags.Ephemeral,
         });
+
         return;
       }
 
@@ -318,25 +385,65 @@ client.on(Events.InteractionCreate, async (interaction) => {
           content: "❌ هذا المربع مستخدم بالفعل.",
           flags: MessageFlags.Ephemeral,
         });
+
         return;
       }
 
-      const symbol = interaction.user.id === game.playerX.id ? "❌" : "⭕";
+      /*
+      |--------------------------------------------------------------------------
+      | Player Move
+      |--------------------------------------------------------------------------
+      */
+
+      const symbol =
+        interaction.user.id === game.playerX.id
+          ? "❌"
+          : "⭕";
+
       game.board[index] = symbol;
 
-      // دالة معالجة انتهاء اللعبة لإرسال رسالة الهياط كرسالة عادية مستقلة للبوت
+      /*
+      |--------------------------------------------------------------------------
+      | Handle Game End
+      |--------------------------------------------------------------------------
+      */
+
       const handleGameEnd = async (resType) => {
         game.finished = true;
 
+        /*
+        |--------------------------------------------------------------------------
+        | WIN
+        |--------------------------------------------------------------------------
+        */
+
         if (resType === "❌" || resType === "⭕") {
-          const winner = resType === "❌" ? game.playerX : game.playerO;
-          const loser = resType === "❌" ? game.playerO : game.playerX;
+          const winner =
+            resType === "❌"
+              ? game.playerX
+              : game.playerO;
+
+          const loser =
+            resType === "❌"
+              ? game.playerO
+              : game.playerX;
+
+          /*
+          |--------------------------------------------------------------------------
+          | Save Human Win
+          |--------------------------------------------------------------------------
+          */
 
           if (!winner.bot) {
             await addWin(winner.id);
           }
 
-          // 1. قفل اللوحة الأصلية فقط
+          /*
+          |--------------------------------------------------------------------------
+          | Lock Original Game Message
+          |--------------------------------------------------------------------------
+          */
+
           await interaction.update({
             components: [
               ...createBoard(gameId),
@@ -344,16 +451,35 @@ client.on(Events.InteractionCreate, async (interaction) => {
             ],
           });
 
-          // 2. إرسال رسالة النتيجة الأساسية
+          /*
+          |--------------------------------------------------------------------------
+          | RESULT MESSAGE
+          |--------------------------------------------------------------------------
+          |
+          | هذه رسالة جديدة مستقلة للنتيجة.
+          |
+          */
+
           await interaction.channel.send({
             content:
               `🏆 **انتهت اللعبة!**\n\n` +
               `❌ ${game.playerX}  ضد  ⭕ ${game.playerO}\n` +
               `👑 الفائز: ${winner} (${resType})\n` +
-              `💤 الخاسر: ${loser} (${resType === "❌" ? "⭕" : "❌"})`,
+              `💤 الخاسر: ${loser} (${
+                resType === "❌" ? "⭕" : "❌"
+              })`,
           });
 
-          // 3. إذا فاز البوت، يرسل رسالة جديدة كأنها رسالة عادية في الشات من البوت نفسه
+          /*
+          |--------------------------------------------------------------------------
+          | BOT TAUNT
+          |--------------------------------------------------------------------------
+          |
+          | رسالة جديدة مستقلة تمامًا.
+          | لا تستخدم reply ولا editReply.
+          |
+          */
+
           if (winner.bot) {
             const botTaunts = [
               "ارقد ارقد 🤣",
@@ -361,16 +487,48 @@ client.on(Events.InteractionCreate, async (interaction) => {
               "فهمت اللعبة ولا نعلمك من جديد؟ 🤫",
               "بدري عليك تفوز، حاول مرة أخرى ☕",
               "وين اللي يقول بفوز؟ خذ لك صفقة هياط 👏",
-              "ههههههه بدري عليك يا غالي 🤫"
+              "ههههههه بدري عليك يا غالي 🤫",
             ];
-            const randomTaunt = botTaunts[Math.floor(Math.random() * botTaunts.length)];
-            
+
+            const randomTaunt =
+              botTaunts[
+                Math.floor(
+                  Math.random() * botTaunts.length
+                )
+              ];
+
+            /*
+            |--------------------------------------------------------------------------
+            | NEW INDEPENDENT MESSAGE
+            |--------------------------------------------------------------------------
+            */
+
             await interaction.channel.send({
               content: randomTaunt,
+              allowedMentions: {
+                parse: [],
+              },
             });
           }
-        } else if (resType === "draw") {
-          // 1. قفل اللوحة الأصلية للتعادل
+
+          return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | DRAW
+        |--------------------------------------------------------------------------
+        */
+
+        if (resType === "draw") {
+          game.finished = true;
+
+          /*
+          |--------------------------------------------------------------------------
+          | Lock Original Game Message
+          |--------------------------------------------------------------------------
+          */
+
           await interaction.update({
             components: [
               ...createBoard(gameId),
@@ -378,25 +536,63 @@ client.on(Events.InteractionCreate, async (interaction) => {
             ],
           });
 
-          // 2. إرسال رسالة التعادل الأساسية
+          /*
+          |--------------------------------------------------------------------------
+          | DRAW RESULT MESSAGE
+          |--------------------------------------------------------------------------
+          */
+
           await interaction.channel.send({
-            content: `🤝 **انتهت اللعبة بالتعادل!**\n\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
+            content:
+              `🤝 **انتهت اللعبة بالتعادل!**\n\n` +
+              `❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
           });
 
-          // 3. رسالة هياط التعادل المستقلة كرسالة عادية من البوت
+          /*
+          |--------------------------------------------------------------------------
+          | DRAW TAUNT
+          |--------------------------------------------------------------------------
+          |
+          | رسالة جديدة مستقلة تمامًا.
+          |
+          */
+
           const drawTaunts = [
             "والله ماتفوز ريح نفسك 🤣",
             "تعادل وتشوف نفسك؟ مافي فوز يعني مافي فوز 🤫",
             "محاولة جيدة بس الحظ ما يكفي ضد الذكاء الاصطناعي 🥱",
-            "تعادل مرة ومرتين.. ورضه ماتفوز! ☕"
+            "تعادل مرة ومرتين.. ورضه ماتفوز! ☕",
           ];
-          const randomDrawTaunt = drawTaunts[Math.floor(Math.random() * drawTaunts.length)];
+
+          const randomDrawTaunt =
+            drawTaunts[
+              Math.floor(
+                Math.random() * drawTaunts.length
+              )
+            ];
+
+          /*
+          |--------------------------------------------------------------------------
+          | NEW INDEPENDENT MESSAGE
+          |--------------------------------------------------------------------------
+          */
 
           await interaction.channel.send({
             content: randomDrawTaunt,
+            allowedMentions: {
+              parse: [],
+            },
           });
+
+          return;
         }
       };
+
+      /*
+      |--------------------------------------------------------------------------
+      | Check Player Win
+      |--------------------------------------------------------------------------
+      */
 
       let result = checkWinner(game.board);
 
@@ -405,26 +601,62 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
       }
 
-      // تبديل الدور
-      game.turn = game.turn === game.playerX.id ? game.playerO.id : game.playerX.id;
+      /*
+      |--------------------------------------------------------------------------
+      | Switch Turn
+      |--------------------------------------------------------------------------
+      */
 
-      // إذا كان اللعب ضد البوت، يحسب البوت حركته فوراً
-      if (game.isVsBot && game.turn === game.playerO.id && !game.finished) {
+      game.turn =
+        game.turn === game.playerX.id
+          ? game.playerO.id
+          : game.playerX.id;
+
+      /*
+      |--------------------------------------------------------------------------
+      | Bot Move
+      |--------------------------------------------------------------------------
+      */
+
+      if (
+        game.isVsBot &&
+        game.turn === game.playerO.id &&
+        !game.finished
+      ) {
         const botIndex = getBotMove(game.board);
+
         if (botIndex !== null) {
           game.board[botIndex] = "⭕";
 
+          /*
+          |--------------------------------------------------------------------------
+          | Check Bot Win
+          |--------------------------------------------------------------------------
+          */
+
           result = checkWinner(game.board);
+
           if (result) {
             await handleGameEnd(result);
             return;
           }
 
+          /*
+          |--------------------------------------------------------------------------
+          | Return Turn To Player
+          |--------------------------------------------------------------------------
+          */
+
           game.turn = game.playerX.id;
         }
       }
 
-      // تحديث اللوحة الحالية بالحركة الجديدة فقط
+      /*
+      |--------------------------------------------------------------------------
+      | Update Current Game Message
+      |--------------------------------------------------------------------------
+      */
+
       await interaction.update({
         content: getStatus(game),
         components: createBoard(gameId),
@@ -433,8 +665,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return;
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Replay Button
+    |--------------------------------------------------------------------------
+    */
+
     if (interaction.customId.startsWith("xo-replay:")) {
-      const [, gameId] = interaction.customId.split(":");
+      const [, gameId] =
+        interaction.customId.split(":");
+
       const game = games.get(gameId);
 
       if (!game) {
@@ -442,6 +682,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           content: "❌ اللعبة غير موجودة.",
           flags: MessageFlags.Ephemeral,
         });
+
         return;
       }
 
@@ -453,10 +694,18 @@ client.on(Events.InteractionCreate, async (interaction) => {
           content: "❌ أنت لست أحد لاعبي هذه المباراة.",
           flags: MessageFlags.Ephemeral,
         });
+
         return;
       }
 
+      /*
+      |--------------------------------------------------------------------------
+      | Finish Old Game
+      |--------------------------------------------------------------------------
+      */
+
       game.finished = true;
+
       await interaction.update({
         components: [
           ...createBoard(gameId),
@@ -464,8 +713,24 @@ client.on(Events.InteractionCreate, async (interaction) => {
         ],
       });
 
-      const newGameId = createGame(game.playerX, game.playerO);
+      /*
+      |--------------------------------------------------------------------------
+      | Create New Game
+      |--------------------------------------------------------------------------
+      */
+
+      const newGameId = createGame(
+        game.playerX,
+        game.playerO
+      );
+
       const newGame = games.get(newGameId);
+
+      /*
+      |--------------------------------------------------------------------------
+      | Send New Game As New Message
+      |--------------------------------------------------------------------------
+      */
 
       await interaction.channel.send({
         content: getStatus(newGame),
@@ -477,22 +742,33 @@ client.on(Events.InteractionCreate, async (interaction) => {
   } catch (error) {
     console.error(
       "Interaction error:",
-      error.rawError ? JSON.stringify(error.rawError, null, 2) : error
+      error.rawError
+        ? JSON.stringify(error.rawError, null, 2)
+        : error
     );
 
     try {
-      if (!interaction.replied && !interaction.deferred) {
+      if (
+        !interaction.replied &&
+        !interaction.deferred
+      ) {
         await interaction.reply({
           content: "❌ حدث خطأ غير متوقع.",
           flags: MessageFlags.Ephemeral,
         });
-      } else if (interaction.deferred && !interaction.replied) {
+      } else if (
+        interaction.deferred &&
+        !interaction.replied
+      ) {
         await interaction.editReply({
           content: "❌ حدث خطأ غير متوقع.",
         });
       }
     } catch (replyError) {
-      console.error("Failed to send error response:", replyError);
+      console.error(
+        "Failed to send error response:",
+        replyError
+      );
     }
   }
 });
