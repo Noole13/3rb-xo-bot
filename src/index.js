@@ -324,7 +324,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const symbol = interaction.user.id === game.playerX.id ? "❌" : "⭕";
       game.board[index] = symbol;
 
-      // دالة معالجة انتهاء اللعبة برسائل هياط مستقلة كأنها شخص عادي
+      // دالة معالجة انتهاء اللعبة لإرسال رسالة الهياط كرسالة عادية مستقلة للبوت
       const handleGameEnd = async (resType) => {
         game.finished = true;
 
@@ -336,7 +336,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             await addWin(winner.id);
           }
 
-          // 1. قفل اللوحة الأصلية بدون تغيير نصها
+          // 1. قفل اللوحة الأصلية فقط
           await interaction.update({
             components: [
               ...createBoard(gameId),
@@ -353,7 +353,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
               `💤 الخاسر: ${loser} (${resType === "❌" ? "⭕" : "❌"})`,
           });
 
-          // 3. إذا فاز البوت، يرسل رسالة هياط مستقلة كأنه عضو في الشات
+          // 3. إذا فاز البوت، يرسل رسالة جديدة كأنها رسالة عادية في الشات من البوت نفسه
           if (winner.bot) {
             const botTaunts = [
               "ارقد ارقد 🤣",
@@ -383,7 +383,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             content: `🤝 **انتهت اللعبة بالتعادل!**\n\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
           });
 
-          // 3. رسالة هياط التعادل المستقلة كأنها رسالة عادية
+          // 3. رسالة هياط التعادل المستقلة كرسالة عادية من البوت
           const drawTaunts = [
             "والله ماتفوز ريح نفسك 🤣",
             "تعادل وتشوف نفسك؟ مافي فوز يعني مافي فوز 🤫",
