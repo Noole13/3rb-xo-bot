@@ -86,7 +86,7 @@ const client = new Client({
 
 /*
 |--------------------------------------------------------------------------
-| Database Functions
+| Database Functions (Wins & Game Channel Settings)
 |--------------------------------------------------------------------------
 */
 
@@ -106,6 +106,31 @@ async function addWin(userId) {
     });
   } catch (e) {
     console.error("Error saving win to Firebase:", e);
+  }
+}
+
+async function getGameChannel(guildId) {
+  try {
+    const channelRef = ref(db, `guildSettings/${guildId}/gameChannelId`);
+    const snapshot = await get(channelRef);
+    if (snapshot.exists()) {
+      return snapshot.val();
+    }
+    return null;
+  } catch (e) {
+    console.error("Error fetching game channel from Firebase:", e);
+    return null;
+  }
+}
+
+async function setGameChannel(guildId, channelId) {
+  try {
+    const channelRef = ref(db, `guildSettings/${guildId}`);
+    await set(channelRef, {
+      gameChannelId: channelId,
+    });
+  } catch (e) {
+    console.error("Error saving game channel to Firebase:", e);
   }
 }
 
@@ -163,19 +188,59 @@ client.once(Events.ClientReady, async (readyClient) => {
 
 /*
 |--------------------------------------------------------------------------
-| Message Create (For Quiz / Text Commands)
+| Message Create (For Quiz / Text Commands & Channel Restriction)
 |--------------------------------------------------------------------------
 */
 
 client.on(Events.MessageCreate, async (message) => {
   if (message.author.bot) return;
 
-  if (message.content === "!عواصم") {
-    await startQuiz(message, 'capitals');
-  } else if (message.content === "!سؤال") {
-    await startQuiz(message, 'general');
-  } else if (message.content === "!اعلام" || message.content === "!flags") {
-    await startFlagQuiz(message);
+  // 1. أمر تعيين قناة الألعاب (خاص بالمشرفين فقط)
+  if (message.content === "!تعيين-قناة" || message.content === "!تحديد-قناة") {
+    if (!message.member.permissions.has("ManageChannels")) {
+      return message.reply({
+        content: "❌ هذا الأمر مخصص للمشرفين فقط لإدارة القنوات!",
+        flags: MessageFlags.Ephemeral,
+      });
+    }
+
+    await setGameChannel(message.guild.id, message.channel.id);
+    return message.reply({
+      content: `✅ تم تعيين هذه القناة **<#${message.channel.id}>** كقناة رسمية للألعاب في هذا السيرفر بنجاح! 🎮`,
+    });
+  }
+
+  // أوامر الألعاب (العواصم، الأسئلة، الأعلام)
+  if (
+    message.content === "!عواصم" ||
+    message.content === "!سؤال" ||
+    message.content === "!اعلام" ||
+    message.content === "!flags"
+  ) {
+    const allowedChannelId = await getGameChannel(message.guild.id);
+
+    // التحقق مما إذا تم تحديد قناة للألعاب في السيرفر أم لا
+    if (!allowedChannelId) {
+      return message.reply({
+        content: "⚠️ لم يتم تحديد قناة للألعاب بعد! يرجى من أحد المشرفين كتابة أمر `!تعيين-قناة` في القناة المخصصة للبدء.",
+      });
+    }
+
+    // التحقق مما إذا كان المستخدم يكتب في القناة الصحيحة المحددة
+    if (message.channel.id !== allowedChannelId) {
+      return message.reply({
+        content: `⚠️ يرجى استخدام ألعاب البوت في القناة المخصصة فقط: <#${allowedChannelId}>!`,
+      });
+    }
+
+    // تشغيل اللعبة المطلوبة
+    if (message.content === "!عواصم") {
+      await startQuiz(message, "capitals");
+    } else if (message.content === "!سؤال") {
+      await startQuiz(message, "general");
+    } else if (message.content === "!اعلام" || message.content === "!flags") {
+      await startFlagQuiz(message);
+    }
   }
 });
 
@@ -259,11 +324,29 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       /*
       |--------------------------------------------------------------------------
-      | /xo
+      | /xo (مع تقييد قناة الألعاب أيضاً)
       |--------------------------------------------------------------------------
       */
 
       if (interaction.commandName !== "xo") {
+        return;
+      }
+
+      const allowedChannelId = await getGameChannel(interaction.guildId);
+
+      if (!allowedChannelId) {
+        await interaction.reply({
+          content: "⚠️ لم يتم تحديد قناة للألعاب بعد! يرجى من أحد المشرفين كتابة أمر `!تعيين-قناة` في القناة المخصصة للبدء.",
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+
+      if (interaction.channelId !== allowedChannelId) {
+        await interaction.reply({
+          content: `⚠️ يرجى لعب ألعاب البوت في القناة المخصصة فقط: <#${allowedChannelId}>!`,
+          flags: MessageFlags.Ephemeral,
+        });
         return;
       }
 
