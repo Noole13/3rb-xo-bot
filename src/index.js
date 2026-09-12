@@ -185,12 +185,12 @@ function createAlternatingGame(creator, opponent) {
   const gameId = createGame(pX, pO);
   const game = games.get(gameId);
 
-  // إذا كان البوت هو من يبدأ، نحسب حركته الأولى بدقة ونضعها في اللوحة، ثم نعطي الدور للعضو
+  // إذا كان البوت يبدأ أولاً، نجعله يلعب حركته الأولى فوراً عند إنشاء اللعبة
   if (game && game.isVsBot && botStartsFirst) {
     const botIndex = getBotMove(game.board, "❌");
     if (botIndex !== null && botIndex !== undefined) {
       game.board[botIndex] = "❌";
-      // تعيين الدور بدقة تامة للعضو (playerO)
+      // تحويل الدور فوراً إلى العضو (playerO) لتبدأ اللعبة والعضو يستطيع اللعب
       game.turn = game.playerO.id;
     }
   }
