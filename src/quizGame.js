@@ -352,7 +352,7 @@ export async function startQuiz(message, mode = 'capitals') {
 
         // نص السؤال الرئيسي في المنتصف بالخط العربي الجميل
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 28px NotoNaskh, sans-serif';
+        ctx.font = 'bold 42px NotoNaskh, sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(q.question, 400, 210);
 
