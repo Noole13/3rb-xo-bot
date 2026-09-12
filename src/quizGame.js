@@ -1,5 +1,20 @@
 import { AttachmentBuilder } from 'discord.js';
-import { createCanvas } from '@napi-rs/canvas';
+import { createCanvas, GlobalFonts } from '@napi-rs/canvas';
+import fs from 'fs';
+import path from 'path';
+
+// تسجيل الخط العربي Noto Naskh تلقائياً من المجلد الرئيسي للمشروع
+try {
+    const fontPath = path.join(process.cwd(), 'NotoNaskhArabic-SemiBold.ttf');
+    if (fs.existsSync(fontPath)) {
+        GlobalFonts.registerFromPath(fontPath, 'NotoNaskh');
+        console.log("✅ تم تسجيل خط Noto Naskh Arabic بنجاح!");
+    } else {
+        console.log("⚠️ تحذير: ملف الخط غير موجود في الجذر، تأكد من رفعه.");
+    }
+} catch (e) {
+    console.error("❌ خطأ أثناء تسجيل الخط:", e);
+}
 
 // قاعدة بيانات الأسئلة مصنفة بدقة
 const questions = [
@@ -58,7 +73,7 @@ export async function startQuiz(message, mode = 'capitals') {
     try {
         let availableQuestions = questions;
 
-        // التصفية بدقة حسب الأمر المدخل
+        // تصفية الأسئلة بدقة حسب الأمر المستخدم
         if (mode === 'capitals') {
             availableQuestions = questions.filter(q => q.category.includes('عواصم'));
         } else if (mode === 'general') {
@@ -70,7 +85,7 @@ export async function startQuiz(message, mode = 'capitals') {
         const canvas = createCanvas(800, 380);
         const ctx = canvas.getContext('2d');
 
-        // خلفية البطاقة المتدرجة
+        // خلفية البطاقة المتدرجة الفخمة
         const gradient = ctx.createLinearGradient(0, 0, 800, 380);
         gradient.addColorStop(0, '#0f172a');
         gradient.addColorStop(0.5, '#1e293b');
@@ -80,22 +95,22 @@ export async function startQuiz(message, mode = 'capitals') {
         ctx.roundRect(0, 0, 800, 380, 20);
         ctx.fill();
 
-        // إطار البطاقة الخارجي
+        // إطار البطاقة الخارجي الذهبي
         ctx.strokeStyle = '#f59e0b';
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.roundRect(5, 5, 790, 370, 18);
         ctx.stroke();
 
-        // العنوان العلوي (استخدام خط عام يدعم الأنظمة المتاحة بدون مشاكل مربعات)
+        // العنوان العلوي باستخدام الخط المخصص NotoNaskh
         ctx.fillStyle = '#f59e0b';
-        ctx.font = 'bold 20px sans-serif';
+        ctx.font = 'bold 20px NotoNaskh, sans-serif';
         ctx.textAlign = 'right';
         ctx.fillText('🌟 3RB Games • تحدي المعرفة', 750, 50);
 
         // التصنيف
         ctx.fillStyle = '#94a3b8';
-        ctx.font = '18px sans-serif';
+        ctx.font = '18px NotoNaskh, sans-serif';
         ctx.textAlign = 'left';
         ctx.fillText(`📌 التصنيف: ${q.category}`, 50, 50);
 
@@ -107,9 +122,9 @@ export async function startQuiz(message, mode = 'capitals') {
         ctx.lineTo(750, 75);
         ctx.stroke();
 
-        // نص السؤال الرئيسي في المنتصف
+        // نص السؤال الرئيسي في المنتصف بالخط العربي الجميل
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 30px sans-serif';
+        ctx.font = 'bold 28px NotoNaskh, sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(q.question, 400, 210);
 
@@ -122,11 +137,11 @@ export async function startQuiz(message, mode = 'capitals') {
         ctx.stroke();
 
         ctx.fillStyle = '#60a5fa';
-        ctx.font = 'bold 20px sans-serif';
+        ctx.font = 'bold 18px NotoNaskh, sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('⏳ 20 ثانية للإجابة', 400, 323);
 
-        const attachment = new AttachmentBuilder(await canvas.encode('png'), { name: 'quiz.png' });
+        const attachment = new AttachmentBuilder(await canvas.encode('png'), { name: 'arabic-quiz.png' });
 
         const startTime = Date.now();
         await message.channel.send({
