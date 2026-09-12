@@ -1,5 +1,5 @@
-const { AttachmentBuilder } = require('discord.js');
-const { createCanvas } = require('@napi-rs/canvas');
+import { AttachmentBuilder } from 'discord.js';
+import { createCanvas } from '@napi-rs/canvas';
 
 // قائمة أسئلة تجريبية (يمكنك توسيعها أو ربطها بقاعدة بيانات)
 const questions = [
@@ -9,7 +9,7 @@ const questions = [
     { category: "معلومات عامة", question: "ما هي أكبر حشرة في العالم من حيث الحجم؟", answer: "الخنافس" }
 ];
 
-async function startQuiz(message) {
+export async function startQuiz(message) {
     try {
         // اختر سؤالاً عشوائياً
         const q = questions[Math.floor(Math.random() * questions.length)];
@@ -41,10 +41,10 @@ async function startQuiz(message) {
         ctx.font = '18px sans-serif';
         ctx.fillText('⏳ 20 ثانية', 400, 280);
 
-        const attachment = new AttachmentBuilder(canvas.toBuffer('image/png'), { name: 'quiz.png' });
+        const attachment = new AttachmentBuilder(await canvas.encode('png'), { name: 'quiz.png' });
 
         const startTime = Date.now();
-        const sentMessage = await message.channel.send({
+        await message.channel.send({
             files: [attachment]
         });
 
@@ -83,5 +83,3 @@ async function startQuiz(message) {
         message.channel.send('حدث خطأ أثناء تحميل السؤال.');
     }
 }
-
-module.exports = { startQuiz };
