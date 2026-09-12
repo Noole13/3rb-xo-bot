@@ -166,6 +166,7 @@ const botTurnToggle = new Map();
 function createAlternatingGame(creator, opponent) {
   let pX = creator;
   let pO = opponent;
+  let botStartsFirst = false;
 
   // إذا كان اللعب ضد البوت، نقوم بالتبديل بينهما
   if (opponent.bot) {
@@ -177,18 +178,20 @@ function createAlternatingGame(creator, opponent) {
       // هذه المرة البوت يبدأ أولاً (البوت هو X والعضو هو O)
       pX = opponent;
       pO = creator;
+      botStartsFirst = true;
     }
   }
 
   const gameId = createGame(pX, pO);
   const game = games.get(gameId);
 
-  // إذا كان البوت هو من يبدأ (playerX هو البوت)، نجعله يلعب حركته الأولى فوراً
-  if (game && game.isVsBot && game.turn === game.playerX.id) {
+  // إذا كان البوت هو من يبدأ، نحسب حركته الأولى بدقة ونضعها في اللوحة، ثم نعطي الدور للعضو
+  if (game && game.isVsBot && botStartsFirst) {
     const botIndex = getBotMove(game.board, "❌");
     if (botIndex !== null && botIndex !== undefined) {
       game.board[botIndex] = "❌";
-      game.turn = game.playerO.id; // تحويل الدور فوراً إلى العضو
+      // تعيين الدور بدقة تامة للعضو (playerO)
+      game.turn = game.playerO.id;
     }
   }
 
@@ -604,7 +607,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       /*
       |--------------------------------------------------------------------------
-      | Switch Turn
+      | Switch Turn (Player to Bot or vice versa)
       |--------------------------------------------------------------------------
       */
 
@@ -615,45 +618,46 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       /*
       |--------------------------------------------------------------------------
-      | Bot Move
+      | Bot Move (If it's bot's turn)
       |--------------------------------------------------------------------------
       */
 
-      if (
-        game.isVsBot &&
-        ((game.turn === game.playerX.id && game.playerX.bot) ||
-         (game.turn === game.playerO.id && game.playerO.bot)) &&
-        !game.finished
-      ) {
-        const botSymbol = game.turn === game.playerX.id ? "❌" : "⭕";
-        const botIndex = getBotMove(game.board, botSymbol);
+      if (game.isVsBot && !game.finished) {
+        const isBotTurn =
+          (game.turn === game.playerX.id && game.playerX.bot) ||
+          (game.turn === game.playerO.id && game.playerO.bot);
 
-        if (botIndex !== null && botIndex !== undefined) {
-          game.board[botIndex] = botSymbol;
+        if (isBotTurn) {
+          const botSymbol = game.turn === game.playerX.id ? "❌" : "⭕";
+          const botIndex = getBotMove(game.board, botSymbol);
 
-          /*
-          |--------------------------------------------------------------------------
-          | Check Bot Win
-          |--------------------------------------------------------------------------
-          */
+          if (botIndex !== null && botIndex !== undefined) {
+            game.board[botIndex] = botSymbol;
 
-          result = checkWinner(game.board);
+            /*
+            |--------------------------------------------------------------------------
+            | Check Bot Win
+            |--------------------------------------------------------------------------
+            */
 
-          if (result) {
-            await handleGameEnd(result);
-            return;
+            result = checkWinner(game.board);
+
+            if (result) {
+              await handleGameEnd(result);
+              return;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Return Turn To Human Player
+            |--------------------------------------------------------------------------
+            */
+
+            game.turn =
+              game.turn === game.playerX.id
+                ? game.playerO.id
+                : game.playerX.id;
           }
-
-          /*
-          |--------------------------------------------------------------------------
-          | Return Turn To Player
-          |--------------------------------------------------------------------------
-          */
-
-          game.turn =
-            game.turn === game.playerX.id
-              ? game.playerO.id
-              : game.playerX.id;
         }
       }
 
@@ -725,7 +729,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       |--------------------------------------------------------------------------
       */
 
-      // نحدد من هو اللاعب البشري ومن هو البوت من اللعبة السابقة
       const humanPlayer = game.playerX.bot ? game.playerO : game.playerX;
       const botPlayer = game.playerX.bot ? game.playerX : game.playerO;
 
