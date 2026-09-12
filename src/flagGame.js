@@ -1,4 +1,4 @@
-import { AttachmentBuilder } from 'discord.js';
+import { AttachmentBuilder, EmbedBuilder } from 'discord.js';
 
 // قاعدة بيانات الأعلام والدول
 const flagsData = [
@@ -34,7 +34,7 @@ export async function startFlagQuiz(message) {
         
         // رابط صورة العلم كبيرة للسؤال في الأعلى
         const flagImageUrl = `https://flagcdn.com/w1280/${flagItem.code}.png`;
-        // رابط صورة العلم بحجم أصغر للإجابة الصحيحة بجانب النص
+        // رابط صورة العلم المصغرة للإمبد
         const smallFlagUrl = `https://flagcdn.com/w320/${flagItem.code}.png`;
 
         // إرسال علم السؤال كبير في الأعلى
@@ -62,12 +62,17 @@ export async function startFlagQuiz(message) {
 
                 collector.stop();
 
-                // إرسال صورة العلم الصغيرة لتظهر بجانب النص في رسالة الفوز
-                const winAttachment = new AttachmentBuilder(smallFlagUrl, { name: 'small-flag.png' });
+                // إرسال رسالة الفوز عبر الإمبد المطلوب
+                const winEmbed = new EmbedBuilder()
+                    .setColor(0x28c7a6)
+                    .setDescription(
+                        `🎉 <@${response.author.id}> أجب في **${timeTaken} ثانية**\n` +
+                        `الجواب: **${flagItem.name}**`
+                    )
+                    .setThumbnail(smallFlagUrl);
 
                 await response.reply({
-                    content: `🎉 <@${response.author.id}> أجب في **${timeTaken} ثانية**\nالجواب: ${flagItem.name}`,
-                    files: [winAttachment]
+                    embeds: [winEmbed]
                 });
             }
         });
