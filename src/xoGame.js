@@ -98,54 +98,49 @@ function getStatus(game) {
   );
 }
 
-// خوارزمية ذكية للبوت (إغلاق المسارات + محاولة الفوز)
+// خوارزمية Minimax الذكية (ذكاء اصطناعي حقيقي لا يُهزم)
+function minimax(newBoard, depth, isMaximizing) {
+  const winner = checkWinner(newBoard);
+  if (winner === "⭕") return { score: 10 - depth };
+  if (winner === "❌") return { score: depth - 10 };
+  if (winner === "draw") return { score: 0 };
+
+  if (isMaximizing) {
+    let bestScore = -Infinity;
+    let bestMove = null;
+    for (let i = 0; i < 9; i++) {
+      if (!newBoard[i]) {
+        newBoard[i] = "⭕";
+        const result = minimax(newBoard, depth + 1, false);
+        newBoard[i] = null;
+        if (result.score > bestScore) {
+          bestScore = result.score;
+          bestMove = i;
+        }
+      }
+    }
+    return { score: bestScore, move: bestMove };
+  } else {
+    let bestScore = Infinity;
+    let bestMove = null;
+    for (let i = 0; i < 9; i++) {
+      if (!newBoard[i]) {
+        newBoard[i] = "❌";
+        const result = minimax(newBoard, depth + 1, true);
+        newBoard[i] = null;
+        if (result.score < bestScore) {
+          bestScore = result.score;
+          bestMove = i;
+        }
+      }
+    }
+    return { score: bestScore, move: bestMove };
+  }
+}
+
 function getBotMove(board) {
-  const combinations = [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8],
-    [0, 3, 6], [1, 4, 7], [2, 5, 8],
-    [0, 4, 8], [2, 4, 6],
-  ];
-
-  // 1. محاولة الفوز إذا كان البوت يمتلك خانتين على نفس الخط
-  for (const [a, b, c] of combinations) {
-    const line = [board[a], board[b], board[c]];
-    if (line.filter(v => v === "⭕").length === 2 && line.includes(null)) {
-      if (!board[a]) return a;
-      if (!board[b]) return b;
-      if (!board[c]) return c;
-    }
-  }
-
-  // 2. الدفاع وإغلاق الخط إذا كان اللاعب (❌) يمتلك خانتين على وشك الفوز
-  for (const [a, b, c] of combinations) {
-    const line = [board[a], board[b], board[c]];
-    if (line.filter(v => v === "❌").length === 2 && line.includes(null)) {
-      if (!board[a]) return a;
-      if (!board[b]) return b;
-      if (!board[c]) return c;
-    }
-  }
-
-  // 3. أخذ المنتصف إذا كان فارغاً
-  if (!board[4]) {
-    return 4;
-  }
-
-  // 4. أخذ إحدى الزوايا إذا كانت فارغة
-  const corners = [0, 2, 6, 8];
-  const emptyCorners = corners.filter(i => !board[i]);
-  if (emptyCorners.length > 0) {
-    return emptyCorners[Math.floor(Math.random() * emptyCorners.length)];
-  }
-
-  // 5. أي خانة فارغة أخرى عشوائياً
-  const emptyIndices = [];
-  board.forEach((val, idx) => {
-    if (!val) emptyIndices.push(idx);
-  });
-
-  if (emptyIndices.length === 0) return null;
-  return emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+  const aiResult = minimax([...board], 0, true);
+  return aiResult.move;
 }
 
 export {
