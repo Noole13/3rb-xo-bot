@@ -2,15 +2,14 @@ import { AttachmentBuilder } from 'discord.js';
 import { createCanvas, GlobalFonts } from '@napi-rs/canvas';
 import path from 'path';
 
-// 1. تسجيل خط عربي يدعم الحروف العربية بوضوح (تأكد من وجود ملف الخط في مسار المشروع أو مسار النظام)
-// يمكنك تحميل خط Cairo أو Amiri وتوفيره في مجلد المشروع
+// تسجيل الخط العربي (تأكد من وجود ملف الخط أو سيتم تخطيه تلقائياً)
 try {
     GlobalFonts.registerFromPath(path.join(process.cwd(), 'Cairo-Bold.ttf'), 'ArabicFont');
 } catch (e) {
     console.log("لم يتم العثور على ملف الخط المخصص، سيتم المحاولة بالخطوط الافتراضية.");
 }
 
-// قاعدة بيانات ضخمة ومنوعة للأسئلة
+// قاعدة بيانات الأسئلة
 const questions = [
     // --- عواصم عربية ---
     { category: "عواصم عربية", question: "ما هي عاصمة المملكة العربية السعودية؟", answer: "الرياض" },
@@ -65,11 +64,19 @@ const questions = [
     { category: "معلومات عامة", question: "ما هي عاصمة دولة البرازيل؟", answer: "برازيليا" }
 ];
 
-export async function startQuiz(message) {
+export async function startQuiz(message, commandType = 'general') {
     try {
-        const q = questions[Math.floor(Math.random() * questions.length)];
+        let filteredQuestions = questions;
 
-        // إنشاء لوحة الرسم (Canvas) بحجم عالي الجودة
+        // إذا كان الأمر خاص بالعواصم، نقوم بتصفية الأسئلة لتكون ضمن العواصم فقط
+        if (commandType === 'capitals') {
+            filteredQuestions = questions.filter(q => q.category.includes('عواصم'));
+        }
+
+        // اختيار سؤال عشوائي من القائمة المفلترة
+        const q = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)] || questions[0];
+
+        // إنشاء لوحة الرسم (Canvas)
         const canvas = createCanvas(800, 380);
         const ctx = canvas.getContext('2d');
 
@@ -90,7 +97,7 @@ export async function startQuiz(message) {
         ctx.roundRect(5, 5, 790, 370, 18);
         ctx.stroke();
 
-        // 3. شريط علوي جذاب (تم استخدام اسم الخط العربي المسجل 'ArabicFont' أو البديل الافتراضي)
+        // 3. شريط علوي جذاب
         ctx.fillStyle = '#f59e0b';
         ctx.font = 'bold 20px ArabicFont, sans-serif';
         ctx.textAlign = 'right';
@@ -110,7 +117,7 @@ export async function startQuiz(message) {
         ctx.lineTo(750, 75);
         ctx.stroke();
 
-        // 5. نص السؤال الرئيسي (في منتصف البطاقة)
+        // 5. نص السؤال الرئيسي
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 30px ArabicFont, sans-serif';
         ctx.textAlign = 'center';
