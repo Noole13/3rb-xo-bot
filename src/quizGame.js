@@ -1,5 +1,5 @@
 import { AttachmentBuilder } from 'discord.js';
-import { createCanvas, GlobalFonts } from '@napi-rs/canvas';
+import { createCanvas, GlobalFonts, loadImage } from '@napi-rs/canvas';
 import fs from 'fs';
 import path from 'path';
 
@@ -148,73 +148,55 @@ export async function startQuiz(message, mode = 'capitals') {
 
         // التصفية الدقيقة والفصل التام بين الأوامر
         if (mode === 'capitals') {
-            // جلب عواصم عربية وعالمية فقط
             availableQuestions = questions.filter(q => q.category.includes('عواصم'));
         } else if (mode === 'general') {
-            // جلب الأسئلة العامة والرياضة والألغاز حصرياً (باستثناء العواصم)
             availableQuestions = questions.filter(q => !q.category.includes('عواصم'));
         }
 
         const q = availableQuestions[Math.floor(Math.random() * availableQuestions.length)] || questions[0];
 
-        const canvas = createCanvas(800, 380);
+        // استخدام دقة عالية تتناسب مع أبعاد الصورة الخلفية الجديدة
+        const canvas = createCanvas(1200, 675);
         const ctx = canvas.getContext('2d');
 
-        // خلفية البطاقة المتدرجة الفخمة
-        const gradient = ctx.createLinearGradient(0, 0, 800, 380);
-        gradient.addColorStop(0, '#0f172a');
-        gradient.addColorStop(0.5, '#1e293b');
-        gradient.addColorStop(1, '#090d16');
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.roundRect(0, 0, 800, 380, 20);
-        ctx.fill();
+        // تحميل ورسم صورة الخلفية
+        try {
+            const bgPath = path.join(process.cwd(), 'quiz-bg.png');
+            if (fs.existsSync(bgPath)) {
+                const background = await loadImage(bgPath);
+                ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
+            } else {
+                // خلفية احتياطية داكنة في حال لم يتم العثور على الصورة لسبب ما
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+        } catch (imgErr) {
+            console.error("خطأ في تحميل صورة الخلفية:", imgErr);
+        }
 
-        // إطار البطاقة الخارجي الذهبي
-        ctx.strokeStyle = '#f59e0b';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.roundRect(5, 5, 790, 370, 18);
-        ctx.stroke();
-
-        // العنوان العلوي باستخدام الخط المخصص NotoNaskh
+        // 1. التصنيف (في أعلى اليسار تماماً كما يظهر في صورتك)
         ctx.fillStyle = '#f59e0b';
-        ctx.font = 'bold 20px NotoNaskh, sans-serif';
-        ctx.textAlign = 'right';
-        ctx.fillText('🌟 3RB Games • تحدي المعرفة', 750, 50);
-
-        // التصنيف
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '18px NotoNaskh, sans-serif';
+        ctx.font = 'bold 26px NotoNaskh, sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillText(`📌 التصنيف: ${q.category}`, 50, 50);
+        ctx.fillText(`التصنيف: ${q.category}`, 80, 85);
 
-        // خط فاصل
-        ctx.strokeStyle = '#334155';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(50, 75);
-        ctx.lineTo(750, 75);
-        ctx.stroke();
+        // 2. العنوان العلوي (في أعلى اليمين تماماً كما يظهر في صورتك)
+        ctx.fillStyle = '#f59e0b';
+        ctx.font = 'bold 26px NotoNaskh, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText('تحدي المعرفة', 1120, 85);
 
-        // نص السؤال الرئيسي في المنتصف بالخط العربي الجميل
+        // 3. نص السؤال الرئيسي (في المنتصف تماماً تحت الشعار وبخط كبير وواضح)
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 42px NotoNaskh, sans-serif';
+        ctx.font = 'bold 46px NotoNaskh, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(q.question, 400, 210);
+        ctx.fillText(q.question, 600, 360);
 
-        // صندوق المؤقت في الأسفل
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
-        ctx.beginPath();
-        ctx.roundRect(300, 290, 200, 50, 25);
-        ctx.fill();
-        ctx.strokeStyle = '#3b82f6';
-        ctx.stroke();
-
-        ctx.fillStyle = '#60a5fa';
-        ctx.font = 'bold 18px NotoNaskh, sans-serif';
+        // 4. نص المؤقت (داخل الزر الشفاف في الأسفل تماماً)
+        ctx.fillStyle = '#f59e0b';
+        ctx.font = 'bold 26px NotoNaskh, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('⏳ 20 ثانية للإجابة', 400, 323);
+        ctx.fillText('ثانية للإجابة 20', 600, 545);
 
         const attachment = new AttachmentBuilder(await canvas.encode('png'), { name: 'arabic-quiz.png' });
 
