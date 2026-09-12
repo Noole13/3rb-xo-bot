@@ -3,9 +3,6 @@ import { initializeApp } from "firebase/app";
 import { getDatabase, ref, get, set } from "firebase/database";
 
 import {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
   Client,
   Events,
   REST,
@@ -14,6 +11,16 @@ import {
   SlashCommandBuilder,
   MessageFlags,
 } from "discord.js";
+
+import {
+  games,
+  createGame,
+  createBoard,
+  createGameButtons,
+  checkWinner,
+  getStatus,
+  getBotMove,
+} from "./xoGame.js";
 
 const TOKEN = process.env.DISCORD_TOKEN;
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
@@ -94,26 +101,18 @@ async function addWin(userId) {
 
 /*
 |--------------------------------------------------------------------------
-| Games
-|--------------------------------------------------------------------------
-*/
-
-const games = new Map();
-
-/*
-|--------------------------------------------------------------------------
 | Slash Commands
 |--------------------------------------------------------------------------
 */
 
 const xoCommand = new SlashCommandBuilder()
   .setName("xo")
-  .setDescription("لعب لعبة XO مع لاعب آخر")
+  .setDescription("لعب لعبة XO مع لاعب آخر أو ضد البوت")
   .addUserOption((option) =>
     option
       .setName("player")
-      .setDescription("اختر اللاعب الذي تريد اللعب ضده")
-      .setRequired(true)
+      .setDescription("اختر اللاعب (اتركه فارغاً للعب ضد البوت)")
+      .setRequired(false)
   );
 
 const topCommand = new SlashCommandBuilder()
@@ -134,144 +133,6 @@ async function registerCommands() {
   });
 
   console.log("Slash commands registered successfully.");
-}
-
-/*
-|--------------------------------------------------------------------------
-| XO Board
-|--------------------------------------------------------------------------
-*/
-
-function createBoard(gameId) {
-  const game = games.get(gameId);
-
-  if (!game) {
-    return [];
-  }
-
-  const board = [];
-
-  for (let i = 0; i < 9; i += 1) {
-    const value = game.board[i];
-
-    board.push(
-      new ButtonBuilder()
-        .setCustomId(`xo:${gameId}:${i}`)
-        .setLabel(value ? value : "➖")
-        .setStyle(
-          value === "❌"
-            ? ButtonStyle.Danger
-            : value === "⭕"
-              ? ButtonStyle.Primary
-              : ButtonStyle.Secondary
-        )
-        .setDisabled(Boolean(value) || game.finished)
-    );
-  }
-
-  return [
-    new ActionRowBuilder().addComponents(board[0], board[1], board[2]),
-    new ActionRowBuilder().addComponents(board[3], board[4], board[5]),
-    new ActionRowBuilder().addComponents(board[6], board[7], board[8]),
-  ];
-}
-
-/*
-|--------------------------------------------------------------------------
-| Game Buttons (Replay Only)
-|--------------------------------------------------------------------------
-*/
-
-function createGameButtons(gameId, disabled = false) {
-  return [
-    new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`xo-replay:${gameId}`)
-        .setLabel("🔄 لعب مرة أخرى")
-        .setStyle(ButtonStyle.Success)
-        .setDisabled(disabled)
-    ),
-  ];
-}
-
-/*
-|--------------------------------------------------------------------------
-| Check Winner
-|--------------------------------------------------------------------------
-*/
-
-function checkWinner(board) {
-  const combinations = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8],
-    [0, 3, 6],
-    [1, 4, 7],
-    [2, 5, 8],
-    [0, 4, 8],
-    [2, 4, 6],
-  ];
-
-  for (const [a, b, c] of combinations) {
-    if (
-      board[a] &&
-      board[a] === board[b] &&
-      board[a] === board[c]
-    ) {
-      return board[a];
-    }
-  }
-
-  if (board.every(Boolean)) {
-    return "draw";
-  }
-
-  return null;
-}
-
-/*
-|--------------------------------------------------------------------------
-| Create Game
-|--------------------------------------------------------------------------
-*/
-
-function createGame(playerX, playerO) {
-  const gameId = `${playerX.id}-${playerO.id}-${Date.now()}`;
-
-  games.set(gameId, {
-    id: gameId,
-    playerX,
-    playerO,
-    board: Array(9).fill(null),
-    turn: playerX.id,
-    finished: false,
-  });
-
-  return gameId;
-}
-
-/*
-|--------------------------------------------------------------------------
-| Game Status
-|--------------------------------------------------------------------------
-*/
-
-function getStatus(game) {
-  const currentPlayer =
-    game.turn === game.playerX.id
-      ? game.playerX
-      : game.playerO;
-
-  const symbol =
-    game.turn === game.playerX.id
-      ? "❌"
-      : "⭕";
-
-  return (
-    `🎮 **لعبة XO**\n\n` +
-    `❌ ${game.playerX}  ضد  ⭕ ${game.playerO}\n\n` +
-    `🎯 الدور الآن: ${currentPlayer} ${symbol}`
-  );
 }
 
 /*
@@ -355,15 +216,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
       }
 
-      const opponent = interaction.options.getUser("player", true);
+      let opponent = interaction.options.getUser("player");
       const creator = interaction.user;
 
-      if (opponent.bot) {
-        await interaction.reply({
-          content: "❌ لا يمكنك اللعب ضد بوت.",
-          flags: MessageFlags.Ephemeral,
-        });
-        return;
+      if (!opponent) {
+        opponent = client.user;
       }
 
       if (opponent.id === creator.id) {
@@ -467,55 +324,108 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const symbol = interaction.user.id === game.playerX.id ? "❌" : "⭕";
       game.board[index] = symbol;
 
-      const result = checkWinner(game.board);
+      let result = checkWinner(game.board);
 
-      if (result === "❌" || result === "⭕") {
+      if (result) {
         game.finished = true;
 
-        const winner = result === "❌" ? game.playerX : game.playerO;
-        const loser = result === "❌" ? game.playerO : game.playerX;
-        const winnerSymbol = result;
-        const loserSymbol = result === "❌" ? "⭕" : "❌";
+        if (result === "❌" || result === "⭕") {
+          const winner = result === "❌" ? game.playerX : game.playerO;
+          const loser = result === "❌" ? game.playerO : game.playerX;
+          const winnerSymbol = result;
+          const loserSymbol = result === "❌" ? "⭕" : "❌";
 
-        await addWin(winner.id);
+          if (!winner.bot) {
+            await addWin(winner.id);
+          }
 
-        await interaction.update({
-          content: `🏁 **انتهت اللعبة!**\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
-          components: [
-            ...createBoard(gameId),
-            ...createGameButtons(gameId, false),
-          ],
-        });
+          await interaction.update({
+            content: `🏁 **انتهت اللعبة!**\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
+            components: [
+              ...createBoard(gameId),
+              ...createGameButtons(gameId, false),
+            ],
+          });
 
-        await interaction.channel.send({
-          content:
-            `🏆 **انتهت اللعبة!**\n\n` +
-            `👑 الفائز: ${winner} ${winnerSymbol}\n` +
-            `💤 الخاسر: ${loser} ${loserSymbol}`,
-        });
+          await interaction.channel.send({
+            content:
+              `🏆 **انتهت اللعبة!**\n\n` +
+              `👑 الفائز: ${winner} ${winnerSymbol}\n` +
+              `💤 الخاسر: ${loser} ${loserSymbol}`,
+          });
+        } else if (result === "draw") {
+          await interaction.update({
+            content: `🤝 **تعادل!**\n\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
+            components: [
+              ...createBoard(gameId),
+              ...createGameButtons(gameId, false),
+            ],
+          });
 
-        return;
-      }
-
-      if (result === "draw") {
-        game.finished = true;
-
-        await interaction.update({
-          content: `🤝 **تعادل!**\n\n❌ ${game.PlayerX}  ضد  ⭕ ${game.playerO}`,
-          components: [
-            ...createBoard(gameId),
-            ...createGameButtons(gameId, false),
-          ],
-        });
-
-        await interaction.channel.send({
-          content: `🤝 **انتهت اللعبة بالتعادل!**\n\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
-        });
+          await interaction.channel.send({
+            content: `🤝 **انتهت اللعبة بالتعادل!**\n\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
+          });
+        }
 
         return;
       }
 
       game.turn = game.turn === game.playerX.id ? game.playerO.id : game.playerX.id;
+
+      if (game.isVsBot && game.turn === game.playerO.id && !game.finished) {
+        const botIndex = getBotMove(game.board);
+        if (botIndex !== null) {
+          game.board[botIndex] = "⭕";
+
+          result = checkWinner(game.board);
+
+          if (result) {
+            game.finished = true;
+
+            if (result === "❌" || result === "⭕") {
+              const winner = result === "❌" ? game.playerX : game.playerO;
+              const loser = result === "❌" ? game.playerO : game.playerX;
+              const winnerSymbol = result;
+              const loserSymbol = result === "❌" ? "⭕" : "❌";
+
+              if (!winner.bot) {
+                await addWin(winner.id);
+              }
+
+              await interaction.update({
+                content: `🏁 **انتهت اللعبة!**\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
+                components: [
+                  ...createBoard(gameId),
+                  ...createGameButtons(gameId, false),
+                ],
+              });
+
+              await interaction.channel.send({
+                content:
+                  `🏆 **انتهت اللعبة!**\n\n` +
+                  `👑 الفائز: ${winner} ${winnerSymbol}\n` +
+                  `💤 الخاسر: ${loser} ${loserSymbol}`,
+              });
+            } else if (result === "draw") {
+              await interaction.update({
+                content: `🤝 **تعادل!**\n\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
+                components: [
+                  ...createBoard(gameId),
+                  ...createGameButtons(gameId, false),
+                ],
+              });
+
+              await interaction.channel.send({
+                content: `🤝 **انتهت اللعبة بالتعادل!**\n\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
+              });
+            }
+
+            return;
+          }
+
+          game.turn = game.playerX.id;
+        }
+      }
 
       await interaction.update({
         content: getStatus(game),
