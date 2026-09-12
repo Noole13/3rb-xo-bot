@@ -98,11 +98,11 @@ function getStatus(game) {
   );
 }
 
-// خوارزمية Minimax الذكية (ذكاء اصطناعي حقيقي لا يُهزم)
-function minimax(newBoard, depth, isMaximizing) {
+// خوارزمية Minimax المعدلة: تركز بقوة على الفوز للبوت وتقفل بالكامل لمنع الخصم من الفوز
+function minimax(newBoard, depth, isMaximizing, botSymbol, humanSymbol) {
   const winner = checkWinner(newBoard);
-  if (winner === "⭕") return { score: 10 - depth };
-  if (winner === "❌") return { score: depth - 10 };
+  if (winner === botSymbol) return { score: 10 - depth };
+  if (winner === humanSymbol) return { score: depth - 10 };
   if (winner === "draw") return { score: 0 };
 
   if (isMaximizing) {
@@ -110,8 +110,8 @@ function minimax(newBoard, depth, isMaximizing) {
     let bestMove = null;
     for (let i = 0; i < 9; i++) {
       if (!newBoard[i]) {
-        newBoard[i] = "⭕";
-        const result = minimax(newBoard, depth + 1, false);
+        newBoard[i] = botSymbol;
+        const result = minimax(newBoard, depth + 1, false, botSymbol, humanSymbol);
         newBoard[i] = null;
         if (result.score > bestScore) {
           bestScore = result.score;
@@ -123,10 +123,10 @@ function minimax(newBoard, depth, isMaximizing) {
   } else {
     let bestScore = Infinity;
     let bestMove = null;
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0, iMax = 9; i < iMax; i++) {
       if (!newBoard[i]) {
-        newBoard[i] = "❌";
-        const result = minimax(newBoard, depth + 1, true);
+        newBoard[i] = humanSymbol;
+        const result = minimax(newBoard, depth + 1, true, botSymbol, humanSymbol);
         newBoard[i] = null;
         if (result.score < bestScore) {
           bestScore = result.score;
@@ -138,8 +138,9 @@ function minimax(newBoard, depth, isMaximizing) {
   }
 }
 
-function getBotMove(board) {
-  const aiResult = minimax([...board], 0, true);
+function getBotMove(board, botSymbol = "⭕") {
+  const humanSymbol = botSymbol === "⭕" ? "❌" : "⭕";
+  const aiResult = minimax([...board], 0, true, botSymbol, humanSymbol);
   return aiResult.move;
 }
 
