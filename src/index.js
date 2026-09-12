@@ -23,6 +23,7 @@ import {
 } from "./xoGame.js";
 
 import { startQuiz } from "./quizGame.js";
+import { startFlagQuiz } from "./flagGame.js";
 
 const TOKEN = process.env.DISCORD_TOKEN;
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
@@ -173,6 +174,8 @@ client.on(Events.MessageCreate, async (message) => {
     await startQuiz(message, 'capitals');
   } else if (message.content === "!سؤال") {
     await startQuiz(message, 'general');
+  } else if (message.content === "!اعلام" || message.content === "!flags") {
+    await startFlagQuiz(message);
   }
 });
 
