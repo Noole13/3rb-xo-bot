@@ -456,66 +456,64 @@ client.on(Events.InteractionCreate, async (interaction) => {
       | /xo
       |--------------------------------------------------------------------------
       */
-      if (interaction.commandName !== "xo") {
-        return;
-      }
+      if (interaction.commandName === "xo") {
+        const allowedChannelId = await getGameChannel(interaction.guildId);
 
-      const allowedChannelId = await getGameChannel(interaction.guildId);
-
-      if (!allowedChannelId) {
-        await interaction.reply({
-          content:
-            "⚠️ لم يتم تحديد قناة للألعاب بعد! يرجى من أحد المشرفين استخدام أمر السلاش `/تعيين-قناة` للبدء.",
-          flags: MessageFlags.Ephemeral,
-        });
-        return;
-      }
-
-      if (interaction.channelId !== allowedChannelId) {
-        await interaction.reply({
-          content: `⚠️ يرجى لعب ألعاب البوت في القناة المخصصة فقط: <#${allowedChannelId}>!`,
-          flags: MessageFlags.Ephemeral,
-        });
-        return;
-      }
-
-      let opponent = interaction.options.getUser("player");
-      const creator = interaction.user;
-
-      if (!opponent) {
-        opponent = client.user;
-      }
-
-      if (opponent.id === creator.id) {
-        await interaction.reply({
-          content: "❌ لا يمكنك اللعب ضد نفسك.",
-          flags: MessageFlags.Ephemeral,
-        });
-        return;
-      }
-
-      for (const [id, g] of games.entries()) {
-        if (
-          !g.finished &&
-          (g.playerX.id === creator.id ||
-            g.playerO.id === creator.id ||
-            g.playerX.id === opponent.id ||
-            g.playerO.id === opponent.id)
-        ) {
-          g.finished = true;
-          games.delete(id);
+        if (!allowedChannelId) {
+          await interaction.reply({
+            content:
+              "⚠️ لم يتم تحديد قناة للألعاب بعد! يرجى من أحد المشرفين استخدام أمر السلاش `/تعيين-قناة` للبدء.",
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
         }
+
+        if (interaction.channelId !== allowedChannelId) {
+          await interaction.reply({
+            content: `⚠️ يرجى لعب ألعاب البوت في القناة المخصصة فقط: <#${allowedChannelId}>!`,
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
+        }
+
+        let opponent = interaction.options.getUser("player");
+        const creator = interaction.user;
+
+        if (!opponent) {
+          opponent = client.user;
+        }
+
+        if (opponent.id === creator.id) {
+          await interaction.reply({
+            content: "❌ لا يمكنك اللعب ضد نفسك.",
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
+        }
+
+        for (const [id, g] of games.entries()) {
+          if (
+            !g.finished &&
+            (g.playerX.id === creator.id ||
+              g.playerO.id === creator.id ||
+              g.playerX.id === opponent.id ||
+              g.playerO.id === opponent.id)
+          ) {
+            g.finished = true;
+            games.delete(id);
+          }
+        }
+
+        const gameId = createGame(creator, opponent);
+        const game = games.get(gameId);
+
+        await interaction.reply({
+          content: getStatus(game),
+          components: createBoard(gameId),
+        });
+
+        return;
       }
-
-      const gameId = createGame(creator, opponent);
-      const game = games.get(gameId);
-
-      await interaction.reply({
-        content: getStatus(game),
-        components: createBoard(gameId),
-      });
-
-      return;
     }
 
     /*
