@@ -1,5 +1,14 @@
 import { AttachmentBuilder } from 'discord.js';
-import { createCanvas } from '@napi-rs/canvas';
+import { createCanvas, GlobalFonts } from '@napi-rs/canvas';
+import path from 'path';
+
+// 1. تسجيل خط عربي يدعم الحروف العربية بوضوح (تأكد من وجود ملف الخط في مسار المشروع أو مسار النظام)
+// يمكنك تحميل خط Cairo أو Amiri وتوفيره في مجلد المشروع
+try {
+    GlobalFonts.registerFromPath(path.join(process.cwd(), 'Cairo-Bold.ttf'), 'ArabicFont');
+} catch (e) {
+    console.log("لم يتم العثور على ملف الخط المخصص، سيتم المحاولة بالخطوط الافتراضية.");
+}
 
 // قاعدة بيانات ضخمة ومنوعة للأسئلة
 const questions = [
@@ -81,15 +90,15 @@ export async function startQuiz(message) {
         ctx.roundRect(5, 5, 790, 370, 18);
         ctx.stroke();
 
-        // 3. شريط علوي جذاب
+        // 3. شريط علوي جذاب (تم استخدام اسم الخط العربي المسجل 'ArabicFont' أو البديل الافتراضي)
         ctx.fillStyle = '#f59e0b';
-        ctx.font = 'bold 20px sans-serif';
+        ctx.font = 'bold 20px ArabicFont, sans-serif';
         ctx.textAlign = 'right';
         ctx.fillText('🌟 3RB Games • تحدي المعرفة', 750, 50);
 
         // 4. التصنيف
         ctx.fillStyle = '#94a3b8';
-        ctx.font = '18px sans-serif';
+        ctx.font = '18px ArabicFont, sans-serif';
         ctx.textAlign = 'left';
         ctx.fillText(`📌 التصنيف: ${q.category}`, 50, 50);
 
@@ -103,7 +112,7 @@ export async function startQuiz(message) {
 
         // 5. نص السؤال الرئيسي (في منتصف البطاقة)
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 34px sans-serif';
+        ctx.font = 'bold 30px ArabicFont, sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(q.question, 400, 210);
 
@@ -116,7 +125,7 @@ export async function startQuiz(message) {
         ctx.stroke();
 
         ctx.fillStyle = '#60a5fa';
-        ctx.font = 'bold 20px sans-serif';
+        ctx.font = 'bold 20px ArabicFont, sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('⏳ 20 ثانية للإجابة', 400, 323);
 
