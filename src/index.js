@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
-import fs from "node:fs";
+import { initializeApp } from "firebase/app";
+import { getDatabase, ref, get, set, update } from "firebase/database";
 
 import {
   ActionRowBuilder,
@@ -25,6 +26,19 @@ if (!TOKEN) {
 if (!CLIENT_ID) {
   throw new Error("Missing DISCORD_CLIENT_ID");
 }
+
+/*
+|--------------------------------------------------------------------------
+| Firebase Initialization
+|--------------------------------------------------------------------------
+*/
+
+const firebaseConfig = {
+  databaseURL: process.env.FIREBASE_DATABASE_URL || "https://rbgames-4ee8e-default-rtdb.firebaseio.com/",
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getDatabase(firebaseApp);
 
 /*
 |--------------------------------------------------------------------------
@@ -56,39 +70,26 @@ const client = new Client({
 
 /*
 |--------------------------------------------------------------------------
-| Database (Leaderboard)
+| Database (Firebase Leaderboard Functions)
 |--------------------------------------------------------------------------
 */
 
-const DB_FILE = "./leaderboard.json";
-
-function loadLeaderboard() {
+async function addWin(userId) {
   try {
-    if (fs.existsSync(DB_FILE)) {
-      return JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
+    const userRef = ref(db, `leaderboard/${userId}`);
+    const snapshot = await get(userRef);
+    
+    let currentWins = 0;
+    if (snapshot.exists()) {
+      currentWins = snapshot.val().wins || 0;
     }
+
+    await set(userRef, {
+      wins: currentWins + 1,
+    });
   } catch (e) {
-    console.error("Error loading leaderboard:", e);
+    console.error("Error saving win to Firebase:", e);
   }
-  return {};
-}
-
-function saveLeaderboard(data) {
-  try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), "utf8");
-  } catch (e) {
-    console.error("Error saving leaderboard:", e);
-  }
-}
-
-const leaderboard = loadLeaderboard();
-
-function addWin(userId) {
-  if (!leaderboard[userId]) {
-    leaderboard[userId] = { wins: 0 };
-  }
-  leaderboard[userId].wins += 1;
-  saveLeaderboard(leaderboard);
 }
 
 /*
@@ -307,27 +308,45 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (interaction.commandName === "top") {
         await interaction.deferReply();
 
-        const sorted = Object.entries(leaderboard)
-          .sort(([, a], [, b]) => b.wins - a.wins)
-          .slice(0, 3);
+        try {
+          const leaderboardRef = ref(db, "leaderboard");
+          const snapshot = await get(leaderboardRef);
 
-        if (sorted.length === 0) {
-          await interaction.editReply({
-            content: "📊 لا توجد انتصارات مسجلة حتى الآن.",
+          if (!snapshot.exists()) {
+            await interaction.editReply({
+              content: "📊 لا توجد انتصارات مسجلة حتى الآن.",
+            });
+            return;
+          }
+
+          const data = snapshot.val();
+          const sorted = Object.entries(data)
+            .sort(([, a], [, b]) => (b.wins || 0) - (a.wins || 0))
+            .slice(0, 3);
+
+          if (sorted.length === 0) {
+            await interaction.editReply({
+              content: "📊 لا توجد انتصارات مسجلة حتى الآن.",
+            });
+            return;
+          }
+
+          let desc = "🏆 **أفضل 3 لاعبين في لعبة XO**\n\n";
+          const medals = ["🥇", "🥈", "🥉"];
+
+          sorted.forEach(([userId, userData], index) => {
+            desc += `${medals[index]} <@${userId}> — **${userData.wins}** فوز\n`;
           });
-          return;
+
+          await interaction.editReply({
+            content: desc,
+          });
+        } catch (dbError) {
+          console.error("Error fetching leaderboard from Firebase:", dbError);
+          await interaction.editReply({
+            content: "❌حدث خطأ أثناء جلب لوحة الشرف.",
+          });
         }
-
-        let desc = "🏆 **أفضل 3 لاعبين في لعبة XO**\n\n";
-        const medals = ["🥇", "🥈", "🥉"];
-
-        sorted.forEach(([userId, data], index) => {
-          desc += `${medals[index]} <@${userId}> — **${data.wins}** فوز\n`;
-        });
-
-        await interaction.editReply({
-          content: desc,
-        });
 
         return;
       }
@@ -458,7 +477,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const winnerSymbol = result;
         const loserSymbol = result === "❌" ? "⭕" : "❌";
 
-        addWin(winner.id);
+        await addWin(winner.id);
 
         await interaction.update({
           content: `🏁 **انتهت اللعبة!**\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
