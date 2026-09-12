@@ -169,8 +169,10 @@ client.once(Events.ClientReady, async (readyClient) => {
 client.on(Events.MessageCreate, async (message) => {
   if (message.author.bot) return;
 
-  if (message.content === "!عواصم" || message.content === "!سؤال") {
-    await startQuiz(message);
+  if (message.content === "!عواصم") {
+    await startQuiz(message, 'capitals');
+  } else if (message.content === "!سؤال") {
+    await startQuiz(message, 'general');
   }
 });
 
