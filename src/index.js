@@ -33,6 +33,9 @@ import {
   runNextRound,
 } from "./chairsGame.js";
 
+// استيراد أمر التحديثات من الملف المنفصل
+import { announcementCommand, executeAnnouncement } from "./announcements.js";
+
 const TOKEN = process.env.DISCORD_TOKEN;
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const PORT = process.env.PORT || 10000;
@@ -192,6 +195,7 @@ async function registerCommands() {
       topCommand.toJSON(),
       setChannelCommand.toJSON(),
       chairsCommand.toJSON(),
+      announcementCommand.toJSON(), // <--- تسجيل أمر التحديثات هنا
     ],
   });
 
@@ -273,6 +277,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
     */
 
     if (interaction.isChatInputCommand()) {
+      /*
+      |--------------------------------------------------------------------------
+      | /إعلان-التحديثات
+      |--------------------------------------------------------------------------
+      */
+      if (interaction.commandName === "إعلان-التحديثات") {
+        await executeAnnouncement(interaction);
+        return;
+      }
+
       /*
       |--------------------------------------------------------------------------
       | /تعيين-قناة
