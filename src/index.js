@@ -324,7 +324,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const symbol = interaction.user.id === game.playerX.id ? "❌" : "⭕";
       game.board[index] = symbol;
 
-      // دالة معالجة انتهاء اللعبة (فوز أو تعادل) مع رسائل الهياط المنفصلة
+      // دالة معالجة انتهاء اللعبة برسائل هياط مستقلة كأنها شخص عادي
       const handleGameEnd = async (resType) => {
         game.finished = true;
 
@@ -336,7 +336,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             await addWin(winner.id);
           }
 
-          // 1. قفل اللوحة الأصلية فقط دون تعديل نصها العلوي لمنع أي تداخل
+          // 1. قفل اللوحة الأصلية بدون تغيير نصها
           await interaction.update({
             components: [
               ...createBoard(gameId),
@@ -344,30 +344,33 @@ client.on(Events.InteractionCreate, async (interaction) => {
             ],
           });
 
-          // عبارات هياط عشوائية إذا فاز البوت
-          let taunts = "";
+          // 2. إرسال رسالة النتيجة الأساسية
+          await interaction.channel.send({
+            content:
+              `🏆 **انتهت اللعبة!**\n\n` +
+              `❌ ${game.playerX}  ضد  ⭕ ${game.playerO}\n` +
+              `👑 الفائز: ${winner} (${resType})\n` +
+              `💤 الخاسر: ${loser} (${resType === "❌" ? "⭕" : "❌"})`,
+          });
+
+          // 3. إذا فاز البوت، يرسل رسالة هياط مستقلة كأنه عضو في الشات
           if (winner.bot) {
             const botTaunts = [
               "ارقد ارقد 🤣",
               "تعقب تفوز علي يا وحش 🥱",
               "فهمت اللعبة ولا نعلمك من جديد؟ 🤫",
               "بدري عليك تفوز، حاول مرة أخرى ☕",
-              "وين اللي يقول بفوز؟ خذ لك صفقة هياط 👏"
+              "وين اللي يقول بفوز؟ خذ لك صفقة هياط 👏",
+              "ههههههه بدري عليك يا غالي 🤫"
             ];
-            taunts = `\n💬 **رد البوت:** "${botTaunts[Math.floor(Math.random() * botTaunts.length)]}"`;
+            const randomTaunt = botTaunts[Math.floor(Math.random() * botTaunts.length)];
+            
+            await interaction.channel.send({
+              content: randomTaunt,
+            });
           }
-
-          // 2. إرسال رسالة جديدة ومستقلة تماماً في الشات للنتيجة
-          await interaction.channel.send({
-            content:
-              `🏆 **انتهت اللعبة!**\n\n` +
-              `❌ ${game.playerX}  ضد  ⭕ ${game.playerO}\n` +
-              `👑 الفائز: ${winner} (${resType})\n` +
-              `💤 الخاسر: ${loser} (${resType === "❌" ? "⭕" : "❌"})` +
-              taunts,
-          });
         } else if (resType === "draw") {
-          // 1. قفل اللوحة الأصلية فقط دون تغيير نصها
+          // 1. قفل اللوحة الأصلية للتعادل
           await interaction.update({
             components: [
               ...createBoard(gameId),
@@ -375,18 +378,22 @@ client.on(Events.InteractionCreate, async (interaction) => {
             ],
           });
 
-          // عبارات هياط خاصة بالتعادل
-          let drawTaunts = [
+          // 2. إرسال رسالة التعادل الأساسية
+          await interaction.channel.send({
+            content: `🤝 **انتهت اللعبة بالتعادل!**\n\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
+          });
+
+          // 3. رسالة هياط التعادل المستقلة كأنها رسالة عادية
+          const drawTaunts = [
             "والله ماتفوز ريح نفسك 🤣",
             "تعادل وتشوف نفسك؟ مافي فوز يعني مافي فوز 🤫",
             "محاولة جيدة بس الحظ ما يكفي ضد الذكاء الاصطناعي 🥱",
             "تعادل مرة ومرتين.. ورضه ماتفوز! ☕"
           ];
-          const chosenDrawTaunt = drawTaunts[Math.floor(Math.random() * drawTaunts.length)];
+          const randomDrawTaunt = drawTaunts[Math.floor(Math.random() * drawTaunts.length)];
 
-          // 2. إرسال رسالة جديدة ومستقلة بالتعادل
           await interaction.channel.send({
-            content: `🤝 **انتهت اللعبة بالتعادل!**\n\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}\n💬 **رد البوت:** "${chosenDrawTaunt}"`,
+            content: randomDrawTaunt,
           });
         }
       };
