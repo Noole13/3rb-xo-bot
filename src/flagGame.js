@@ -1,6 +1,6 @@
 import { AttachmentBuilder } from 'discord.js';
 
-// قاعدة بيانات الأعلام والدول مع روابط مباشرة لعرض العلم كاملاً
+// قاعدة بيانات الأعلام والدول
 const flagsData = [
     { name: "السعودية", code: "sa" },
     { name: "مصر", code: "eg" },
@@ -32,10 +32,12 @@ export async function startFlagQuiz(message) {
         // اختيار علم عشوائي
         const flagItem = flagsData[Math.floor(Math.random() * flagsData.length)];
         
-        // رابط صورة العلم الكاملة
+        // رابط صورة العلم كبيرة للسؤال في الأعلى
         const flagImageUrl = `https://flagcdn.com/w1280/${flagItem.code}.png`;
+        // رابط صورة العلم بحجم أصغر للإجابة الصحيحة بجانب النص
+        const smallFlagUrl = `https://flagcdn.com/w320/${flagItem.code}.png`;
 
-        // إرسال صورة العلم مباشرة كملف في السؤال بدون أي تعديل أو تصميم كانفاس
+        // إرسال علم السؤال كبير في الأعلى
         const attachment = new AttachmentBuilder(flagImageUrl, { name: 'flag.png' });
 
         const startTime = Date.now();
@@ -60,8 +62,8 @@ export async function startFlagQuiz(message) {
 
                 collector.stop();
 
-                // إرسال رسالة الفوز مع صورة العلم المصغرة بجانب النص تماماً كما طلبت
-                const winAttachment = new AttachmentBuilder(flagImageUrl, { name: 'win-flag.png' });
+                // إرسال صورة العلم الصغيرة لتظهر بجانب النص في رسالة الفوز
+                const winAttachment = new AttachmentBuilder(smallFlagUrl, { name: 'small-flag.png' });
 
                 await response.reply({
                     content: `🎉 <@${response.author.id}> أجب في **${timeTaken} ثانية**\nالجواب: ${flagItem.name}`,
