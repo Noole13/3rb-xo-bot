@@ -1,7 +1,5 @@
 import { AttachmentBuilder } from 'discord.js';
-import { createCanvas, GlobalFonts, loadImage } from '@napi-rs/canvas';
-import fs from 'fs';
-import path from 'path';
+import { createCanvas, loadImage } from '@napi-rs/canvas';
 
 // قاعدة بيانات الأعلام والدول
 const flagsData = [
@@ -25,7 +23,6 @@ const flagsData = [
     { name: "الولايات المتحدة", code: "us" },
     { name: "اليابان", code: "jp" },
     { name: "البرازيل", code: "br" },
-    { name: "المانيا", code: "de" },
     { name: "النرويج", code: "no" },
     { name: "تركيا", code: "tr" },
     { name: "كندا", code: "ca" }
@@ -115,8 +112,12 @@ export async function startFlagQuiz(message) {
 
                 collector.stop();
 
+                // تجهيز صورة العلم لتظهر بجانب رسالة الفوز تماماً مثل الصورة المطلوبة
+                const flagAttachment = new AttachmentBuilder(flagImageUrl, { name: 'flag.png' });
+
                 await response.reply({
-                    content: `🎉 كفو <@${response.author.id}>! أجبَت في **${timeTaken} ثانية** 🚀\nالجواب: **${flagItem.name}**`
+                    content: `🎉 <@${response.author.id}> أجب في **${timeTaken} ثانية**\nالجواب: ${flagItem.name}`,
+                    files: [flagAttachment]
                 });
             }
         });
