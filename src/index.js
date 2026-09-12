@@ -156,6 +156,47 @@ client.once(Events.ClientReady, async (readyClient) => {
 
 /*
 |--------------------------------------------------------------------------
+| Helper: Create Game with Alternating Turns against Bot
+|--------------------------------------------------------------------------
+*/
+
+// خريطة لتتبع دور البدء لكل مستخدم ضد البوت (true = البوت يبدأ أولاً، false = العضو يبدأ أولاً)
+const botTurnToggle = new Map();
+
+function createAlternatingGame(creator, opponent) {
+  let pX = creator;
+  let pO = opponent;
+
+  // إذا كان اللعب ضد البوت، نقوم بالتبديل بينهما
+  if (opponent.bot) {
+    const lastBotFirst = botTurnToggle.get(creator.id) || false;
+    // نعكس الحالة للعبة القادمة
+    botTurnToggle.set(creator.id, !lastBotFirst);
+
+    if (!lastBotFirst) {
+      // هذه المرة البوت يبدأ أولاً (البوت هو X والعضو هو O)
+      pX = opponent;
+      pO = creator;
+    }
+  }
+
+  const gameId = createGame(pX, pO);
+  const game = games.get(gameId);
+
+  // إذا كان البوت هو من يبدأ (playerX هو البوت)، نجعله يلعب حركته الأولى فوراً
+  if (game && game.isVsBot && game.turn === game.playerX.id) {
+    const botIndex = getBotMove(game.board);
+    if (botIndex !== null) {
+      game.board[botIndex] = "❌";
+      game.turn = game.playerO.id; // إعادة الدور للعضو
+    }
+  }
+
+  return gameId;
+}
+
+/*
+|--------------------------------------------------------------------------
 | Interactions
 |--------------------------------------------------------------------------
 */
@@ -281,11 +322,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       /*
       |--------------------------------------------------------------------------
-      | Create Game
+      | Create Game (Using Alternating Helper)
       |--------------------------------------------------------------------------
       */
 
-      const gameId = createGame(creator, opponent);
+      const gameId = createAlternatingGame(creator, opponent);
       const game = games.get(gameId);
 
       await interaction.reply({
@@ -455,9 +496,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
           |--------------------------------------------------------------------------
           | RESULT MESSAGE
           |--------------------------------------------------------------------------
-          |
-          | هذه رسالة جديدة مستقلة للنتيجة.
-          |
           */
 
           await interaction.channel.send({
@@ -474,10 +512,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
           |--------------------------------------------------------------------------
           | BOT TAUNT
           |--------------------------------------------------------------------------
-          |
-          | رسالة جديدة مستقلة تمامًا.
-          | لا تستخدم reply ولا editReply.
-          |
           */
 
           if (winner.bot) {
@@ -496,12 +530,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
                   Math.random() * botTaunts.length
                 )
               ];
-
-            /*
-            |--------------------------------------------------------------------------
-            | NEW INDEPENDENT MESSAGE
-            |--------------------------------------------------------------------------
-            */
 
             await interaction.channel.send({
               content: randomTaunt,
@@ -523,12 +551,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (resType === "draw") {
           game.finished = true;
 
-          /*
-          |--------------------------------------------------------------------------
-          | Lock Original Game Message
-          |--------------------------------------------------------------------------
-          */
-
           await interaction.update({
             components: [
               ...createBoard(gameId),
@@ -536,26 +558,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
             ],
           });
 
-          /*
-          |--------------------------------------------------------------------------
-          | DRAW RESULT MESSAGE
-          |--------------------------------------------------------------------------
-          */
-
           await interaction.channel.send({
             content:
               `🤝 **انتهت اللعبة بالتعادل!**\n\n` +
               `❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
           });
-
-          /*
-          |--------------------------------------------------------------------------
-          | DRAW TAUNT
-          |--------------------------------------------------------------------------
-          |
-          | رسالة جديدة مستقلة تمامًا.
-          |
-          */
 
           const drawTaunts = [
             "والله ماتفوز ريح نفسك 🤣",
@@ -570,12 +577,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 Math.random() * drawTaunts.length
               )
             ];
-
-          /*
-          |--------------------------------------------------------------------------
-          | NEW INDEPENDENT MESSAGE
-          |--------------------------------------------------------------------------
-          */
 
           await interaction.channel.send({
             content: randomDrawTaunt,
@@ -715,15 +716,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       /*
       |--------------------------------------------------------------------------
-      | Create New Game
+      | Create New Game (Using Alternating Helper for Replay)
       |--------------------------------------------------------------------------
       */
 
-      const newGameId = createGame(
-        game.playerX,
-        game.playerO
-      );
+      // نحدد من هو اللاعب البشري ومن هو البوت من اللعبة السابقة
+      const humanPlayer = game.playerX.bot ? game.playerO : game.playerX;
+      const botPlayer = game.playerX.bot ? game.playerX : game.playerO;
 
+      const newGameId = createAlternatingGame(humanPlayer, botPlayer);
       const newGame = games.get(newGameId);
 
       /*
