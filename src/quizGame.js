@@ -439,11 +439,33 @@ export async function startQuiz(message, mode = 'capitals') {
         ctx.textAlign = 'right';
         ctx.fillText('تحدي المعرفة', 1120, 85);
 
-        // 3. نص السؤال الرئيسي (في المنتصف تماماً تحت الشعار وبخط كبير وواضح)
+        // 3. معالجة ورسم نص السؤال الرئيسي (مع الالتفاف التلقائي لسطرين عند الطول)
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 65px NotoNaskh, sans-serif';
+        ctx.font = 'bold 50px NotoNaskh, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(q.question, 600, 360);
+
+        const maxLineWidth = 1000;
+        const words = q.question.split(' ');
+        let line1 = '';
+        let line2 = '';
+
+        for (let i = 0; i < words.length; i++) {
+            const testLine = line1 + (line1 === '' ? '' : ' ') + words[i];
+            const metrics = ctx.measureText(testLine);
+            if (metrics.width > maxLineWidth && line1 !== '') {
+                line2 = words.slice(i).join(' ');
+                break;
+            } else {
+                line1 = testLine;
+            }
+        }
+
+        if (line2 === '') {
+            ctx.fillText(line1, 600, 360);
+        } else {
+            ctx.fillText(line1, 600, 335);
+            ctx.fillText(line2, 600, 400);
+        }
 
         // 4. نص المؤقت (داخل الزر الشفاف في الأسفل تماماً)
         ctx.fillStyle = '#f59e0b';
