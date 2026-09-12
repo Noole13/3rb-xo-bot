@@ -188,7 +188,7 @@ export async function startQuiz(message, mode = 'capitals') {
 
         // 3. نص السؤال الرئيسي (في المنتصف تماماً تحت الشعار وبخط كبير وواضح)
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 46px NotoNaskh, sans-serif';
+        ctx.font = 'bold 65px NotoNaskh, sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(q.question, 600, 360);
 
