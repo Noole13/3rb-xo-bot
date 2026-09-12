@@ -2,10 +2,6 @@ import { ref, get, update } from "firebase/database";
 
 /**
  * إضافة فوز أو نقطة للاعب في لعبة معينة ضمن السيرفر
- * @param {import("firebase/database").Database} db - قاعدة بيانات فايربيس
- * @param {string} guildId - معرف السيرفر
- * @param {string} userId - معرف اللاعب
- * @param {string} gameName - اسم اللعبة (xo, chairs, capitals, general, flags)
  */
 export async function addGameWin(db, guildId, userId, gameName) {
   try {
@@ -27,19 +23,26 @@ export async function addGameWin(db, guildId, userId, gameName) {
 }
 
 /**
- * جلب لوحة الشرف الشاملة لجميع ألعاب السيرفر
- * @param {import("firebase/database").Database} db - قاعدة بيانات فايربيس
- * @param {string} guildId - معرف السيرفر
- * @returns {Promise<Object|null>}
+ * جلب لوحة الشرف الشاملة لجميع ألعاب السيرفر (مع دعم المسارات القديمة والجديدة)
  */
 export async function getGlobalLeaderboard(db, guildId) {
   try {
-    const guildScoresRef = ref(db, `scores/${guildId}`);
-    const snapshot = await get(guildScoresRef);
+    // 1. محاولة الجلب من المسار الأساسي الجديد
+    const scoresRef = ref(db, `scores/${guildId}`);
+    let snapshot = await get(scoresRef);
 
     if (snapshot.exists()) {
       return snapshot.val();
     }
+
+    // 2. كحل احتياطي: المحاولة من مسار leaderboard إذا كانت البيانات قديمة مخزنة هناك
+    const leaderboardRef = ref(db, `leaderboard/${guildId}`);
+    snapshot = await get(leaderboardRef);
+
+    if (snapshot.exists()) {
+      return snapshot.val();
+    }
+
     return null;
   } catch (error) {
     console.error("Error fetching global leaderboard from Firebase:", error);
