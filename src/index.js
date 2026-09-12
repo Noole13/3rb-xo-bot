@@ -324,21 +324,19 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const symbol = interaction.user.id === game.playerX.id ? "❌" : "⭕";
       game.board[index] = symbol;
 
-      let result = checkWinner(game.board);
-
-      if (result) {
+      // دالة مسلّحة لمعالجة الفوز أو التعادل وإرسال رسالة منفصلة
+      const handleGameEnd = async (resType) => {
         game.finished = true;
 
-        if (result === "❌" || result === "⭕") {
-          const winner = result === "❌" ? game.playerX : game.playerO;
-          const loser = result === "❌" ? game.playerO : game.playerX;
-          const winnerSymbol = result;
-          const loserSymbol = result === "❌" ? "⭕" : "❌";
+        if (resType === "❌" || resType === "⭕") {
+          const winner = resType === "❌" ? game.playerX : game.playerO;
+          const loser = resType === "❌" ? game.playerO : game.playerX;
 
           if (!winner.bot) {
             await addWin(winner.id);
           }
 
+          // قفل اللوحة الأصلية وتحديثها لتظهر منتهية
           await interaction.update({
             content: `🏁 **انتهت اللعبة!**\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
             components: [
@@ -347,15 +345,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
             ],
           });
 
+          // إرسال رسالة منفصلة تماماً بالنتيجة
           await interaction.channel.send({
             content:
               `🏆 **انتهت اللعبة!**\n\n` +
-              `👑 الفائز: ${winner} ${winnerSymbol}\n` +
-              `💤 الخاسر: ${loser} ${loserSymbol}`,
+              `👑 الفائز: ${winner} (${resType})\n` +
+              `💤 الخاسر: ${loser} (${resType === "❌" ? "⭕" : "❌"})`,
           });
-        } else if (result === "draw") {
+        } else if (resType === "draw") {
           await interaction.update({
-            content: `🤝 **تعادل!**\n\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
+            content: `🏁 **انتهت اللعبة!**\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
             components: [
               ...createBoard(gameId),
               ...createGameButtons(gameId, false),
@@ -366,60 +365,27 @@ client.on(Events.InteractionCreate, async (interaction) => {
             content: `🤝 **انتهت اللعبة بالتعادل!**\n\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
           });
         }
+      };
 
+      let result = checkWinner(game.board);
+
+      if (result) {
+        await handleGameEnd(result);
         return;
       }
 
+      // تبديل الدور
       game.turn = game.turn === game.playerX.id ? game.playerO.id : game.playerX.id;
 
+      // إذا كان اللعب ضد البوت، يحسب البوت حركته فوراً
       if (game.isVsBot && game.turn === game.playerO.id && !game.finished) {
         const botIndex = getBotMove(game.board);
         if (botIndex !== null) {
           game.board[botIndex] = "⭕";
 
           result = checkWinner(game.board);
-
           if (result) {
-            game.finished = true;
-
-            if (result === "❌" || result === "⭕") {
-              const winner = result === "❌" ? game.playerX : game.playerO;
-              const loser = result === "❌" ? game.playerO : game.playerX;
-              const winnerSymbol = result;
-              const loserSymbol = result === "❌" ? "⭕" : "❌";
-
-              if (!winner.bot) {
-                await addWin(winner.id);
-              }
-
-              await interaction.update({
-                content: `🏁 **انتهت اللعبة!**\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
-                components: [
-                  ...createBoard(gameId),
-                  ...createGameButtons(gameId, false),
-                ],
-              });
-
-              await interaction.channel.send({
-                content:
-                  `🏆 **انتهت اللعبة!**\n\n` +
-                  `👑 الفائز: ${winner} ${winnerSymbol}\n` +
-                  `💤 الخاسر: ${loser} ${loserSymbol}`,
-              });
-            } else if (result === "draw") {
-              await interaction.update({
-                content: `🤝 **تعادل!**\n\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
-                components: [
-                  ...createBoard(gameId),
-                  ...createGameButtons(gameId, false),
-                ],
-              });
-
-              await interaction.channel.send({
-                content: `🤝 **انتهت اللعبة بالتعادل!**\n\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
-              });
-            }
-
+            await handleGameEnd(result);
             return;
           }
 
@@ -427,6 +393,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
       }
 
+      // تحديث اللوحة الحالية بالحركة الجديدة فقط
       await interaction.update({
         content: getStatus(game),
         components: createBoard(gameId),
