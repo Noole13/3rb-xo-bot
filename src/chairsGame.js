@@ -29,20 +29,14 @@ export function startChairGame(messageOrInteraction, clientUser) {
   return { success: true, gameData };
 }
 
-// دالة توليد زر الانضمام العام (يظهر للجميع)
+// دالة توليد أزرار مرحلة التسجيل (انضمام، بدء، إلغاء) تظهر للجميع في نفس الرسالة
 export function getRecruitmentComponents() {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId("chair_join")
       .setLabel("انضمام للعبة")
       .setStyle(ButtonStyle.Success)
-      .setEmoji("👥")
-  );
-}
-
-// دالة توليد أزرار التحكم الخاصة بصاحب اللعبة فقط (تظهر بشكل سري Ephemeral)
-export function getHostControlComponents() {
-  return new ActionRowBuilder().addComponents(
+      .setEmoji("👥"),
     new ButtonBuilder()
       .setCustomId("chair_start")
       .setLabel("بدء اللعبة")
@@ -68,7 +62,7 @@ export function getRecruitmentEmbed(gameData) {
   return new EmbedBuilder()
     .setColor("#5865F2")
     .setTitle("🪑 لعبة الكراسي الموسيقية")
-    .setDescription("اضغط على زر **انضمام** للمشاركة في اللعبة!\nصاحب اللعبة لديه أزرار التحكم (بدء / إلغاء) في رسالته الخاصة.")
+    .setDescription("اضغط على زر **انضمام** للمشاركة في اللعبة!\nعند اكتمال العدد، يمكن لصاحب اللعبة أو المشرف الضغط على **بدء اللعبة**.")
     .addFields(
       { name: "👥 عدد اللاعبين المشاركين", value: `${gameData.players.size}`, inline: true },
       { name: "⏳ حالة اللعبة", value: "في انتظار انضمام اللاعبين...", inline: false },
