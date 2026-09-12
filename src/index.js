@@ -185,10 +185,10 @@ function createAlternatingGame(creator, opponent) {
 
   // إذا كان البوت هو من يبدأ (playerX هو البوت)، نجعله يلعب حركته الأولى فوراً
   if (game && game.isVsBot && game.turn === game.playerX.id) {
-    const botIndex = getBotMove(game.board);
-    if (botIndex !== null) {
+    const botIndex = getBotMove(game.board, "❌");
+    if (botIndex !== null && botIndex !== undefined) {
       game.board[botIndex] = "❌";
-      game.turn = game.playerO.id; // إعادة الدور للعضو
+      game.turn = game.playerO.id; // تحويل الدور فوراً إلى العضو
     }
   }
 
@@ -621,13 +621,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       if (
         game.isVsBot &&
-        game.turn === game.playerO.id &&
+        ((game.turn === game.playerX.id && game.playerX.bot) ||
+         (game.turn === game.playerO.id && game.playerO.bot)) &&
         !game.finished
       ) {
-        const botIndex = getBotMove(game.board);
+        const botSymbol = game.turn === game.playerX.id ? "❌" : "⭕";
+        const botIndex = getBotMove(game.board, botSymbol);
 
-        if (botIndex !== null) {
-          game.board[botIndex] = "⭕";
+        if (botIndex !== null && botIndex !== undefined) {
+          game.board[botIndex] = botSymbol;
 
           /*
           |--------------------------------------------------------------------------
@@ -648,7 +650,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
           |--------------------------------------------------------------------------
           */
 
-          game.turn = game.playerX.id;
+          game.turn =
+            game.turn === game.playerX.id
+              ? game.playerO.id
+              : game.playerX.id;
         }
       }
 
