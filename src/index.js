@@ -148,7 +148,21 @@ const xoCommand = new SlashCommandBuilder()
 
 const topCommand = new SlashCommandBuilder()
   .setName("top")
-  .setDescription("عرض لوحة الشرف والترتيبات الشاملة لجميع ألعاب السيرفر");
+  .setDescription("عرض لوحة الشرف والترتيبات لألعاب السيرفر")
+  .addStringOption((option) =>
+    option
+      .setName("game")
+      .setDescription("اختر اللعبة لعرض ترتيبها، أو اختر الكل")
+      .setRequired(false)
+      .addChoices(
+        { name: "🏆 جميع الألعاب", value: "all" },
+        { name: "❌ ⭕ لعبة XO", value: "xo" },
+        { name: "🪑 لعبة الكراسي", value: "chairs" },
+        { name: "🌍 لعبة العواصم", value: "capitals" },
+        { name: "🧠 الأسئلة العامة", value: "general" },
+        { name: "🏴 لعبة الأعلام", value: "flags" }
+      )
+  );
 
 const setChannelCommand = new SlashCommandBuilder()
   .setName("تعيين-قناة")
@@ -234,9 +248,6 @@ client.on(Events.MessageCreate, async (message) => {
       });
     }
 
-    // ملاحظة: إذا كانت ملفات المسابقات (quizGame و flagGame) تسجل النقاط،
-    // يمكنك تمرير دالة addGameWin إليها أو تحديثها لتسجيل النقاط تحت المفاتيح:
-    // "capitals", "general", "flags"
     if (message.content === "!عواصم") {
       await startQuiz(message, "capitals", db);
     } else if (message.content === "!سؤال") {
@@ -285,13 +296,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       /*
       |--------------------------------------------------------------------------
-      | /top (لوحة الشرف الشاملة لجميع الألعاب)
+      | /top (لوحة الشرف الشاملة أو حسب اللعبة المحددة)
       |--------------------------------------------------------------------------
       */
       if (interaction.commandName === "top") {
         await interaction.deferReply();
 
         try {
+          const selectedGame = interaction.options.getString("game") || "all";
           const data = await getGlobalLeaderboard(db, interaction.guildId);
 
           if (!data) {
@@ -301,7 +313,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
             return;
           }
 
-          // أسماء الألعاب وترجمتها
           const gamesList = {
             xo: "❌ ⭕ لعبة XO",
             chairs: "🪑 لعبة الكراسي",
@@ -312,48 +323,80 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
           const embed = new EmbedBuilder()
             .setColor(0xF1C40F)
-            .setTitle("🏆 لوحة الشرف الشاملة لألعاب السيرفر")
-            .setDescription("إليك ترتيبيات اللاعبين وأفضل الهدافين في مختلف ألعاب البوت:")
             .setTimestamp();
 
-          let hasAnyScore = false;
+          if (selectedGame !== "all") {
+            const gameTitle = gamesList[selectedGame];
+            embed.setTitle(`🏆 لوحة شرف ${gameTitle}`);
+            embed.setDescription(`أفضل اللاعبين في لعبة **${gameTitle}** على مستوى السيرفر:`);
 
-          for (const [gameKey, gameTitle] of Object.entries(gamesList)) {
-            // تصفية وترتيب اللاعبين لكل لعبة تنازلياً
             const rankedPlayers = Object.entries(data)
               .map(([userId, userGames]) => ({
                 userId,
-                score: userGames[gameKey] || 0,
+                score: userGames[selectedGame] || 0,
               }))
               .filter((item) => item.score > 0)
               .sort((a, b) => b.score - a.score)
-              .slice(0, 3); // أخذ أفضل 3 لاعبين في كل لعبة
+              .slice(0, 10);
 
-            if (rankedPlayers.length > 0) {
-              hasAnyScore = true;
-              const medals = ["🥇", "🥈", "🥉"];
-              let fieldText = "";
-
-              rankedPlayers.forEach((player, index) => {
-                fieldText += `${medals[index]} <@${player.userId}> — **${player.score}** فوز\n`;
+            if (rankedPlayers.length === 0) {
+              await interaction.editReply({
+                content: `📊 لا توجد انتصارات مسجلة في **${gameTitle}** حتى الآن.`,
               });
-
-              embed.addFields({ name: gameTitle, value: fieldText, inline: false });
+              return;
             }
-          }
 
-          if (!hasAnyScore) {
-            await interaction.editReply({
-              content: "📊 لا توجد نتائج كافية لعرضها في لوحة الشرف حتى الآن.",
+            const medals = ["🥇", "🥈", "🥉"];
+            let fieldText = "";
+
+            rankedPlayers.forEach((player, index) => {
+              const rankIcon = medals[index] || `\`#${index + 1}\``;
+              fieldText += `${rankIcon} <@${player.userId}> — **${player.score}** فوز\n`;
             });
-            return;
+
+            embed.addFields({ name: "الترتيب", value: fieldText, inline: false });
+          } else {
+            embed.setTitle("🏆 لوحة الشرف الشاملة لألعاب السيرفر");
+            embed.setDescription("إليك ترتيبيات اللاعبين وأفضل الهدافين في مختلف ألعاب البوت:");
+
+            let hasAnyScore = false;
+
+            for (const [gameKey, gameTitle] of Object.entries(gamesList)) {
+              const rankedPlayers = Object.entries(data)
+                .map(([userId, userGames]) => ({
+                  userId,
+                  score: userGames[gameKey] || 0,
+                }))
+                .filter((item) => item.score > 0)
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 3);
+
+              if (rankedPlayers.length > 0) {
+                hasAnyScore = true;
+                const medals = ["🥇", "🥈", "🥉"];
+                let fieldText = "";
+
+                rankedPlayers.forEach((player, index) => {
+                  fieldText += `${medals[index]} <@${player.userId}> — **${player.score}** فوز\n`;
+                });
+
+                embed.addFields({ name: gameTitle, value: fieldText, inline: false });
+              }
+            }
+
+            if (!hasAnyScore) {
+              await interaction.editReply({
+                content: "📊 لا توجد نتائج كافية لعرضها في لوحة الشرف حتى الآن.",
+              });
+              return;
+            }
           }
 
           await interaction.editReply({ embeds: [embed] });
         } catch (dbError) {
           console.error("Error fetching global leaderboard:", dbError);
           await interaction.editReply({
-            content: "❌ حدث خطأ أثناء جلب لوحة الشرف الشاملة.",
+            content: "❌ حدث خطأ أثناء جلب لوحة الشرف.",
           });
         }
 
@@ -668,7 +711,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
           const loser = resType === "❌" ? game.playerO : game.playerX;
 
           if (!winner.bot) {
-            // حفظ الفوز تحت لعبة xo في فايربيس
             await addGameWin(db, interaction.guildId, winner.id, "xo");
           }
 
