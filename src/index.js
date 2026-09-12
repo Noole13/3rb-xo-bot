@@ -9,6 +9,7 @@ import {
   Routes,
   GatewayIntentBits,
   SlashCommandBuilder,
+  PermissionFlagsBits,
   MessageFlags,
 } from "discord.js";
 
@@ -154,6 +155,17 @@ const topCommand = new SlashCommandBuilder()
   .setName("top")
   .setDescription("عرض أفضل 3 لاعبين في لعبة XO");
 
+const setChannelCommand = new SlashCommandBuilder()
+  .setName("تعيين-قناة")
+  .setDescription("تعيين القناة المخصصة لألعاب البوت في السيرفر")
+  .addChannelOption((option) =>
+    option
+      .setName("channel")
+      .setDescription("اختر القناة التي تريد جعلها مخصصة للألعاب")
+      .setRequired(true)
+  )
+  .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels);
+
 /*
 |--------------------------------------------------------------------------
 | Register Slash Commands
@@ -164,7 +176,7 @@ const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 async function registerCommands() {
   await rest.put(Routes.applicationCommands(CLIENT_ID), {
-    body: [xoCommand.toJSON(), topCommand.toJSON()],
+    body: [xoCommand.toJSON(), topCommand.toJSON(), setChannelCommand.toJSON()],
   });
 
   console.log("Slash commands registered successfully.");
@@ -195,21 +207,6 @@ client.once(Events.ClientReady, async (readyClient) => {
 client.on(Events.MessageCreate, async (message) => {
   if (message.author.bot) return;
 
-  // 1. أمر تعيين قناة الألعاب (خاص بالمشرفين فقط)
-  if (message.content === "!تعيين-قناة" || message.content === "!تحديد-قناة") {
-    if (!message.member.permissions.has("ManageChannels")) {
-      return message.reply({
-        content: "❌ هذا الأمر مخصص للمشرفين فقط لإدارة القنوات!",
-        flags: MessageFlags.Ephemeral,
-      });
-    }
-
-    await setGameChannel(message.guild.id, message.channel.id);
-    return message.reply({
-      content: `✅ تم تعيين هذه القناة **<#${message.channel.id}>** كقناة رسمية للألعاب في هذا السيرفر بنجاح! 🎮`,
-    });
-  }
-
   // أوامر الألعاب (العواصم، الأسئلة، الأعلام)
   if (
     message.content === "!عواصم" ||
@@ -222,7 +219,7 @@ client.on(Events.MessageCreate, async (message) => {
     // التحقق مما إذا تم تحديد قناة للألعاب في السيرفر أم لا
     if (!allowedChannelId) {
       return message.reply({
-        content: "⚠️ لم يتم تحديد قناة للألعاب بعد! يرجى من أحد المشرفين كتابة أمر `!تعيين-قناة` في القناة المخصصة للبدء.",
+        content: "⚠️ لم يتم تحديد قناة للألعاب بعد! يرجى من أحد المشرفين استخدام أمر السلاش `/تعيين-قناة` لتحديدها.",
       });
     }
 
@@ -259,6 +256,23 @@ client.on(Events.InteractionCreate, async (interaction) => {
     */
 
     if (interaction.isChatInputCommand()) {
+      /*
+      |--------------------------------------------------------------------------
+      | /تعيين-قناة
+      |--------------------------------------------------------------------------
+      */
+      if (interaction.commandName === "تعيين-قناة") {
+        const channel = interaction.options.getChannel("channel");
+
+        await setGameChannel(interaction.guildId, channel.id);
+
+        await interaction.reply({
+          content: `✅ تم تعيين القناة **<#${channel.id}>** كقناة رسمية للألعاب في هذا السيرفر بنجاح! 🎮`,
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+
       /*
       |--------------------------------------------------------------------------
       | /top
@@ -336,7 +350,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       if (!allowedChannelId) {
         await interaction.reply({
-          content: "⚠️ لم يتم تحديد قناة للألعاب بعد! يرجى من أحد المشرفين كتابة أمر `!تعيين-قناة` في القناة المخصصة للبدء.",
+          content: "⚠️ لم يتم تحديد قناة للألعاب بعد! يرجى من أحد المشرفين استخدام أمر السلاش `/تعيين-قناة` للبدء.",
           flags: MessageFlags.Ephemeral,
         });
         return;
