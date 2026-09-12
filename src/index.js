@@ -22,6 +22,8 @@ import {
   getBotMove,
 } from "./xoGame.js";
 
+import { startQuiz } from "./quizGame.js";
+
 const TOKEN = process.env.DISCORD_TOKEN;
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const PORT = process.env.PORT || 10000;
@@ -74,7 +76,11 @@ server.listen(PORT, "0.0.0.0", () => {
 */
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+  ],
 });
 
 /*
@@ -151,6 +157,20 @@ client.once(Events.ClientReady, async (readyClient) => {
     await registerCommands();
   } catch (error) {
     console.error("Failed to register slash commands:", error);
+  }
+});
+
+/*
+|--------------------------------------------------------------------------
+| Message Create (For Quiz / Text Commands)
+|--------------------------------------------------------------------------
+*/
+
+client.on(Events.MessageCreate, async (message) => {
+  if (message.author.bot) return;
+
+  if (message.content === "!عواصم" || message.content === "!سؤال") {
+    await startQuiz(message);
   }
 });
 
