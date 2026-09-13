@@ -5,7 +5,10 @@ import {
   ButtonStyle,
   AttachmentBuilder,
 } from "discord.js";
+import { createCanvas, registerFont } from "canvas";
 import { addGameWin } from "./scores.js";
+import fs from "fs";
+import path from "path";
 
 // خريطة لتخزين ألعاب المليون النشطة لكل قناة
 export const millionGames = new Map();
@@ -48,6 +51,105 @@ const millionQuestions = [
     correct: 3,
   },
 ];
+
+// دالة مساعدة لتقسيم النصوص الطويلة في الصورة
+function wrapText(context, text, x, y, maxWidth, lineHeight) {
+  const words = text.split(" ");
+  let line = "";
+  let currentY = y;
+
+  for (let n = 0; n < words.length; n++) {
+    const testLine = line + words[n] + " ";
+    const metrics = context.measureText(testLine);
+    const testWidth = metrics.width;
+    if (testWidth > maxWidth && n > 0) {
+      context.fillText(line, x, currentY);
+      line = words[n] + " ";
+      currentY += lineHeight;
+    } else {
+      line = testLine;
+    }
+  }
+  context.fillText(line, x, currentY);
+  return currentY;
+}
+
+// دالة لتوليد صورة السؤال والخيارات (تعتمد على قالب الصورة المرفق million_banner.png)
+async function generateMillionQuestionImage(currentQ) {
+  const canvas = createCanvas(900, 500);
+  const ctx = canvas.getContext("2d");
+
+  const bannerPath = path.resolve("million_banner.png");
+  
+  if (fs.existsSync(bannerPath)) {
+    try {
+      const background = await import("canvas").then(async () => {
+        // تحميل الصورة كخلفية
+        const { loadImage } = await import("canvas");
+        return await loadImage(bannerPath);
+      });
+      ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
+    } catch (e) {
+      // في حال حدث خطأ في تحميل الصورة، يتم وضع خلفية زرقاء داكنة كبديل
+      ctx.fillStyle = "#0B1D3A";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+  } else {
+    // خلفية افتراضية في حال عدم توفر الصورة
+    ctx.fillStyle = "#0B1D3A";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  // طبقة تظليل خفيفة فوق الخلفية لضمان وضوح النصوص
+  ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // إعدادات الخطوط والنصوص
+  ctx.fillStyle = "#FFFFFF";
+  ctx.textAlign = "right";
+  
+  // كتابة رقم السؤال والجائزة
+  ctx.font = "bold 24px sans-serif";
+  ctx.fillStyle = "#F1C40F";
+  ctx.fillText(`السؤال ${currentQ.level} | الجائزة: $${currentQ.prize}`, 850, 60);
+
+  // كتابة نص السؤال مع التفاف الأسطر
+  ctx.font = "bold 28px sans-serif";
+  ctx.fillStyle = "#FFFFFF";
+  const lastY = wrapText(ctx, currentQ.question, 850, 120, 800, 40);
+
+  // رسم مربعات الخيارات الأربعة بشكل أنيق داخل الصورة
+  const optionsStartY = Math.max(lastY + 50, 240);
+  const optionHeight = 45;
+  const optionSpacing = 15;
+
+  currentQ.options.forEach((option, index) => {
+    const y = optionsStartY + index * (optionHeight + optionSpacing);
+    
+    // خلفية الخيار
+    ctx.fillStyle = "rgba(20, 40, 80, 0.85)";
+    ctx.roundRect ? ctx.roundRect(50, y, 800, optionHeight, 10) : ctx.fillRect(50, y, 800, optionHeight);
+    ctx.fill();
+
+    // إطار الخيار
+    ctx.strokeStyle = "#3498DB";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(50, y, 800, optionHeight);
+
+    // رقم الخيار (1, 2, 3, 4)
+    ctx.fillStyle = "#F1C40F";
+    ctx.font = "bold 22px sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText(`${index + 1}️⃣`, 835, y + 30);
+
+    // نص الخيار
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = "20px sans-serif";
+    ctx.fillText(option, 780, y + 30);
+  });
+
+  return canvas.toBuffer();
+}
 
 // دالة بدء اللعبة
 export async function startMillionGame(messageOrInteraction, db, guildId) {
@@ -114,28 +216,20 @@ export function getMillionRecruitmentEmbed(gameData) {
     .setFooter({ text: "3RB Games • من سيربح المليون" });
 }
 
-// دالة طرح الأسئلة وجولات اللعبة مع استدعاء الصورة المرفقة
+// دالة طرح الأسئلة وجولات اللعبة مع دمج الصورة الناتجة
 export async function runMillionRound(channel, gameData) {
   const currentQ = millionQuestions[gameData.currentQuestionIndex];
   gameData.answersInRound.clear();
 
-  // إرفاق الصورة من الملفات المرفوعة في المشروع
-  const attachment = new AttachmentBuilder("million_banner.png");
+  // توليد صورة السؤال والخيارات
+  const buffer = await generateMillionQuestionImage(currentQ);
+  const attachment = new AttachmentBuilder(buffer, { name: "million_question.png" });
 
   const embed = new EmbedBuilder()
     .setColor("#1E90FF")
     .setTitle(`💡 السؤال رقم ${currentQ.level} (الجائزة: $${currentQ.prize})`)
-    .setDescription(
-      `━━━━━━━━━━━━━━━━━━━\n` +
-      `📌 **${currentQ.question}**\n` +
-      `━━━━━━━━━━━━━━━━━━━\n\n` +
-      `1️⃣  ${currentQ.options[0]}\n` +
-      `2️⃣  ${currentQ.options[1]}\n` +
-      `3️⃣  ${currentQ.options[2]}\n` +
-      `4️⃣  ${currentQ.options[3]}\n\n` +
-      `⏳ **لديك 20 ثانية لاختيار الإجابة بالضغط على الأزرار أدناه!**`
-    )
-    .setImage("attachment://million_banner.png")
+    .setDescription(`⏳ **لديك 20 ثانية لاختيار الإجابة بالضغط على الأزرار أدناه!**`)
+    .setImage("attachment://million_question.png")
     .setFooter({ text: `اللاعبون المستمرون الآن: ${gameData.activePlayers.size}` });
 
   // أزرار الاختيارات الأربعة
