@@ -2,6 +2,7 @@ import { AttachmentBuilder, EmbedBuilder } from 'discord.js';
 import { createCanvas, GlobalFonts, loadImage } from '@napi-rs/canvas';
 import fs from 'fs';
 import path from 'path';
+import { addGameWin } from "./scores.js";
 
 // =========================================================
 // تسجيل الخط العربي
@@ -409,7 +410,7 @@ const questions = [
 // تشغيل لعبة الأسئلة
 // =========================================================
 
-export async function startQuiz(message, mode = 'capitals') {
+export async function startQuiz(message, mode = 'capitals', db) {
 
     try {
 
@@ -686,6 +687,16 @@ export async function startQuiz(message, mode = 'capitals') {
                         ).toFixed(2);
 
                     collector.stop();
+
+                    // -------------------------------------------------
+                    // حفظ النقاط في قاعدة البيانات
+                    // -------------------------------------------------
+
+                    const gameType = mode === 'capitals' ? 'capitals' : 'general';
+
+                    if (db) {
+                        await addGameWin(db, message.guild.id, response.author.id, gameType);
+                    }
 
                     // -------------------------------------------------
                     // رسالة الفوز
