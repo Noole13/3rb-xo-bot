@@ -102,28 +102,28 @@ async function generateMillionQuestionImage(currentQ) {
   }
 
   // 1. كتابة نص السؤال فقط، بمنتصف الصندوق العلوي تماماً (تم حذف سطر "السؤال/الجائزة" نهائياً)
-  ctx.font = "bold 32px ArabicFont, sans-serif";
+  ctx.font = "bold 15px ArabicFont, sans-serif";
   ctx.fillStyle = "#FFFFFF";
   ctx.textAlign = "center";
   drawWrappedText(ctx, currentQ.question, 400, 234, 555, 17);
 
   // 2. الخيارات الأربعة موزعة بدقة داخل المربعات الخاصة بها (شكل سداسي يمين ويسار)
   const optionConfigs = [
-    { text: currentQ.options[0], x: 655, y: 304, num: "1", circleX: 690, circleY: 300, align: "right" }, // الخيار 1: اليمين العلوي
-    { text: currentQ.options[1], x: 110, y: 304, num: "2", circleX: 69,  circleY: 300, align: "left" },  // الخيار 2: اليسار العلوي
-    { text: currentQ.options[2], x: 655, y: 359, num: "3", circleX: 690, circleY: 355, align: "right" }, // الخيار 3: اليمين السفلي
-    { text: currentQ.options[3], x: 110, y: 359, num: "4", circleX: 69,  circleY: 355, align: "left" },  // الخيار 4: اليسار السفلي
+    { text: currentQ.options[0], x: 655, y: 304, num: "1", circleX: 715, circleY: 302, align: "right" }, // الخيار 1: اليمين العلوي
+    { text: currentQ.options[1], x: 110, y: 304, num: "2", circleX: 85,  circleY: 302, align: "left" },  // الخيار 2: اليسار العلوي
+    { text: currentQ.options[2], x: 655, y: 359, num: "3", circleX: 715, circleY: 360, align: "right" }, // الخيار 3: اليمين السفلي
+    { text: currentQ.options[3], x: 110, y: 359, num: "4", circleX: 85,  circleY: 360, align: "left" },  // الخيار 4: اليسار السفلي
   ];
 
   optionConfigs.forEach((opt) => {
     // كتابة نص الخيار داخل المربع
-    ctx.font = "bold 28px ArabicFont, sans-serif";
+    ctx.font = "bold 16px ArabicFont, sans-serif";
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = opt.align;
     ctx.fillText(opt.text, opt.x, opt.y + 5, 260);
 
     // كتابة رقم الخيار (1, 2, 3, 4) داخل المعين الذهبي بلون بارز
-    ctx.font = "bold 20px ArabicFont, sans-serif";
+    ctx.font = "bold 15px ArabicFont, sans-serif";
     ctx.fillStyle = "#FFD700";
     ctx.textAlign = "center";
     ctx.fillText(opt.num, opt.circleX, opt.circleY + 5);
