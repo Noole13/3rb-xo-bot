@@ -4,6 +4,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
 } from "discord.js";
+import { addGameWin } from "./scores.js";
 
 // خريطة لتخزين ألعاب الكراسي النشطة لكل قناة لتجنب تداخل الألعاب
 export const chairGames = new Map();
@@ -72,7 +73,7 @@ export function getRecruitmentEmbed(gameData) {
 }
 
 // بدء جولة جديدة في اللعبة
-export async function runNextRound(channel, gameData, addWinFunction, guildId) {
+export async function runNextRound(channel, gameData, db, guildId) {
   gameData.round++;
   const totalPlayers = gameData.activePlayersInRound.length;
 
@@ -82,9 +83,9 @@ export async function runNextRound(channel, gameData, addWinFunction, guildId) {
     gameData.state = "finished";
     chairGames.delete(channel.id);
 
-    // تسجيل الفوز في النظام (Leaderboard)
-    if (addWinFunction) {
-      await addWinFunction(guildId, winnerId);
+    // تسجيل الفوز في النظام (Leaderboard) وتحديث النقاط باستخدام addGameWin
+    if (db) {
+      await addGameWin(db, guildId, winnerId, 'chairs');
     }
 
     const winEmbed = new EmbedBuilder()
@@ -162,7 +163,7 @@ export async function runNextRound(channel, gameData, addWinFunction, guildId) {
       // الانتظار 4 ثوانٍ ثم بدء الجولة التالية تلقائياً
       setTimeout(() => {
         if (gameData.state === "playing") {
-          runNextRound(channel, gameData, addWinFunction, guildId);
+          runNextRound(channel, gameData, db, guildId);
         }
       }, 4000);
 
