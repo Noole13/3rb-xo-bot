@@ -117,7 +117,7 @@ async function generateMillionQuestionImage(currentQ) {
 
   optionConfigs.forEach((opt) => {
     // كتابة نص الخيار داخل المربع
-    ctx.font = "bold 16px ArabicFont, sans-serif";
+    ctx.font = "bold 28px ArabicFont, sans-serif";
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = opt.align;
     ctx.fillText(opt.text, opt.x, opt.y + 5, 260);
