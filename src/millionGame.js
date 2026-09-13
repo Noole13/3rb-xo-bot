@@ -1,4 +1,5 @@
 import {
+  EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
@@ -59,7 +60,10 @@ export async function startMillionGame(messageOrInteraction, db, guildId) {
     return { success: false, message: "⚠️ توجد لعبة 'من سيربح المليون' تعمل بالفعل في هذه القناة!" };
   }
 
+  const hostId = messageOrInteraction.user ? messageOrInteraction.user.id : messageOrInteraction.author.id;
+
   const gameData = {
+    hostId,
     db,
     guildId,
     state: "recruiting",
@@ -95,16 +99,25 @@ export function getMillionRecruitmentComponents() {
   );
 }
 
-// واجهة رسالة التسجيل
+// واجهة رسالة التسجيل باستخدام EmbedBuilder مرتب بالكامل
 export function getMillionRecruitmentEmbed(gameData) {
   const playerList =
     gameData.players.size > 0
       ? Array.from(gameData.players).map((id) => `<@${id}>`).join(", ")
       : "لا توجد مشاركات حتى الآن. كن أول المنضمين!";
 
+  const embed = new EmbedBuilder()
+    .setColor("#DAA520")
+    .setTitle("🧠 مسابقة: من سيربح المليون؟")
+    .setDescription("اضغط على زر **انضمام للمليون** لتسجيل اسمك في المسابقة!\nالأسئلة ستتدرج في الصعوبة، ومن يخطئ يُقصى فوراً!")
+    .addFields(
+      { name: "👥 عدد المشاركين", value: `${gameData.players.size}`, inline: true },
+      { name: "📋 قائمة اللاعبين", value: playerList, inline: false }
+    )
+    .setFooter({ text: "3RB Games • من سيربح المليون" });
+
   return {
-    content: "🧠 **مسابقة: من سيربح المليون؟**\nاضغط على زر **انضمام للمليون** لتسجيل اسمك في المسابقة!",
-    embeds: []
+    embeds: [embed]
   };
 }
 
@@ -114,11 +127,9 @@ export async function runMillionRound(channel, gameData) {
   gameData.answersInRound.clear();
 
   try {
-    // 1. إنشاء الـ Canvas بنفس أبعاد لعبتك الأخرى
     const canvas = createCanvas(1200, 675);
     const ctx = canvas.getContext('2d');
 
-    // 2. تحميل الخلفية (تأكد أن اسم الصورة لديك هو quiz-bg.png أو مليون_banner.png)
     const bgPath = path.join(process.cwd(), 'quiz-bg.png');
     if (fs.existsSync(bgPath)) {
       const background = await loadImage(bgPath);
@@ -128,7 +139,6 @@ export async function runMillionRound(channel, gameData) {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    // 3. كتابة التصنيف (رقم السؤال والجائزة) في الأعلى
     ctx.fillStyle = '#f59e0b';
     ctx.font = 'bold 26px NotoNaskh, sans-serif';
     ctx.textAlign = 'left';
@@ -137,33 +147,27 @@ export async function runMillionRound(channel, gameData) {
     ctx.textAlign = 'right';
     ctx.fillText('من سيربح المليون', 1120, 85);
 
-    // 4. كتابة نص السؤال في منتصف الصورة
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 40px NotoNaskh, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(currentQ.question, 600, 220);
 
-    // 5. كتابة الخيارات الأربعة بشكل مرتب داخل الصورة
     ctx.font = 'bold 28px NotoNaskh, sans-serif';
-    ctx.fillStyle = '#38bdf8'; // لون مميز للخيارات
+    ctx.fillStyle = '#38bdf8';
     
-    // خيار 1 و 2 (في صف أو تحت بعض حسب التنسيق المفضل، هنا سنرتبهم بشكل واضح)
     ctx.fillText(`1️⃣ ${currentQ.options[0]}`, 600, 310);
     ctx.fillText(`2️⃣ ${currentQ.options[1]}`, 600, 370);
     ctx.fillText(`3️⃣ ${currentQ.options[2]}`, 600, 430);
     ctx.fillText(`4️⃣ ${currentQ.options[3]}`, 600, 490);
 
-    // 6. المؤقت في الأسفل
     ctx.fillStyle = '#f59e0b';
     ctx.font = 'bold 26px NotoNaskh, sans-serif';
     ctx.fillText('ثانية للإجابة 20', 600, 580);
 
-    // 7. تجهيز المرفق للإرسال
     const attachment = new AttachmentBuilder(await canvas.encode('png'), {
       name: 'million-question.png',
     });
 
-    // 8. أزرار الاختيارات (1، 2، 3، 4)
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId("million_ans_1").setLabel("1").setStyle(ButtonStyle.Primary),
       new ButtonBuilder().setCustomId("million_ans_2").setLabel("2").setStyle(ButtonStyle.Primary),
@@ -177,7 +181,6 @@ export async function runMillionRound(channel, gameData) {
       components: [row]
     });
 
-    // 9. مؤقت انتهاء الجولة (20 ثانية)
     setTimeout(async () => {
       if (gameData.state !== "playing") return;
 
