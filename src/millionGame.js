@@ -19,46 +19,95 @@ if (fs.existsSync(fontPath)) {
 // خريطة لتخزين ألعاب المليون النشطة لكل قناة
 export const millionGames = new Map();
 
-// قائمة الأسئلة متدرجة الصعوبة
+// قائمة كبيرة ومتنوعة من الأسئلة الصعبة على غرار برنامج من سيربح المليون
 const millionQuestions = [
   {
     level: 1,
     prize: "100",
-    question: "ما هو لون السماء الصافية في النهار؟",
-    options: ["أحمر", "أزرق", "أخضر", "أصفر"],
+    question: "ما هو العنصر الكيميائي الذي يرمز له بالحرف (Au)؟",
+    options: ["فضة", "ذهب", "نحاس", "حديد"],
     correct: 2,
   },
   {
     level: 2,
     prize: "1,000",
-    question: "كم عدد أيام السنة الهجرية؟",
-    options: ["354 أو 355 يوماً", "365 يوماً", "366 يوماً", "300 يوم"],
+    question: "في أي معركة إسلامية استشهد الصحابي جعفر بن أبي طالب؟",
+    options: ["معركة مؤتة", "معركة اليمامة", "معركة القادسية", "معركة أجنادين"],
     correct: 1,
   },
   {
     level: 3,
     prize: "10,000",
-    question: "ما هي عاصمة دولة اليابان؟",
-    options: ["سيول", "بكين", "طوكيو", "بانكوك"],
+    question: "ما هي عاصمة دولة أستراليا التي يجهلها الكثيرون؟",
+    options: ["سيدني", "ملبورن", "كانبيرا", "بريزبان"],
     correct: 3,
   },
   {
     level: 4,
     prize: "100,000",
-    question: "في أي عام هبط الإنسان على سطح القمر لأول مرة؟",
-    options: ["1965", "1969", "1973", "1981"],
+    question: "من هو العالم المسلم الذي يُعتبر المؤسس الحقيقي لعلم الجبر؟",
+    options: ["الحسن بن الهيثم", "الخوارزمي", "ابن خلدون", "جابر بن حيان"],
     correct: 2,
   },
   {
     level: 5,
     prize: "1,000,000 🏆",
-    question: "من هو القائد المسلم الذي انتصر في معركة عين جالوت؟",
-    options: ["صلاح الدين الأيوبي", "سوزان بايبارس", "قطز", "المظفر قطز / طغرل بك"],
+    question: "ما هو الكوكب الوحيد في المجموعة الشمسية الذي يدور حول محوره مع عقارب الساعة؟",
+    options: ["المريخ", "زحل", "الزهرة", "عطارد"],
     correct: 3,
   },
+  {
+    level: 6,
+    prize: "500",
+    question: "ما هي الدولة الأكثر إنتاجاً للقهوة في العالم؟",
+    options: ["كولومبيا", "فيتنام", "البرازيل", "إثيوبيا"],
+    correct: 3,
+  },
+  {
+    level: 7,
+    prize: "2,000",
+    question: "ما هو أطول نهر في العالم؟",
+    options: ["نهر الأمازون", "نهر النيل", "نهر المسيسيبي", "نهر يانغتسي"],
+    correct: 2,
+  },
+  {
+    level: 8,
+    prize: "20,000",
+    question: "في أي عهد تم بناء قبة الصخرة المشرفة؟",
+    options: ["العصر العباسي", "العصر الأموي", "العصر الفاطمي", "العصر العثماني"],
+    correct: 2,
+  },
+  {
+    level: 9,
+    prize: "200,000",
+    question: "ما هو اسم الغاز الذي يُعرف بغاز الضحك؟",
+    options: ["أكسيد النيتروز", "أول أكسيد الكربون", "الميثان", "الأوزون"],
+    correct: 1,
+  },
+  {
+    level: 10,
+    prize: "1,000,000 🏆",
+    question: "من هو المعماري الشهير مصمم متحف غوغنهيم في بلباو؟",
+    options: ["زها حديد", "فرانك جيري", "نورمان فوستر", "لي كوربوزيه"],
+    correct: 2,
+  },
+  {
+    level: 11,
+    prize: "1,000",
+    question: "ما هي السورة القرآنية التي تُسمى سنام القرآن؟",
+    options: ["سورة يس", "سورة البقرة", "سورة الملك", "سورة الفاتحة"],
+    correct: 2,
+  },
+  {
+    level: 12,
+    prize: "5,000",
+    question: "من هو القائد العسكري الذي فتح جزيرة صقلية؟",
+    options: ["طارق بن زياد", "أسد بن الفرات", "قتيبة بن مسلم", "عقبة بن نافع"],
+    correct: 2,
+  }
 ];
 
-// دالة مساعدة لتقسيم النصوص الطويلة وتوسيطها داخل مربع السؤال العلوي
+// دالة مساعدة لتقسيم النصوص الطويلة وتوسيطها داخل مربع السؤال العلوي (تم ضبط المسافة إلى 24 لمنع التداخل)
 function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
   const words = text.split(" ");
   let lines = [];
@@ -101,11 +150,11 @@ async function generateMillionQuestionImage(currentQ) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  // 1. كتابة نص السؤال فقط، بمنتصف الصندوق العلوي تماماً (تم حذف سطر "السؤال/الجائزة" نهائياً)
-  ctx.font = "bold 32px ArabicFont, sans-serif";
+  // 1. كتابة نص السؤال فقط، بمنتصف الصندوق العلوي تماماً (تم ضبط lineHeight على 24 لمنع تداخل السطرين)
+  ctx.font = "bold 26px ArabicFont, sans-serif";
   ctx.fillStyle = "#FFFFFF";
   ctx.textAlign = "center";
-  drawWrappedText(ctx, currentQ.question, 400, 234, 555, 17);
+  drawWrappedText(ctx, currentQ.question, 400, 234, 555, 24);
 
   // 2. الخيارات الأربعة موزعة بدقة داخل المربعات الخاصة بها (شكل سداسي يمين ويسار)
   const optionConfigs = [
@@ -117,7 +166,7 @@ async function generateMillionQuestionImage(currentQ) {
 
   optionConfigs.forEach((opt) => {
     // كتابة نص الخيار داخل المربع
-    ctx.font = "bold 28px ArabicFont, sans-serif";
+    ctx.font = "bold 24px ArabicFont, sans-serif";
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = opt.align;
     ctx.fillText(opt.text, opt.x, opt.y + 5, 260);
@@ -132,7 +181,7 @@ async function generateMillionQuestionImage(currentQ) {
   return canvas.toBuffer("image/png");
 }
 
-// دالة بدء اللعبة
+// دالة بدء اللعبة (مع اختيار الأسئلة عشوائياً وتلقائياً لكل لعبة جديدة)
 export async function startMillionGame(messageOrInteraction, db, guildId) {
   const channelId = messageOrInteraction.channelId;
 
@@ -142,6 +191,9 @@ export async function startMillionGame(messageOrInteraction, db, guildId) {
 
   const hostId = messageOrInteraction.user ? messageOrInteraction.user.id : messageOrInteraction.author.id;
 
+  // خلط الأسئلة عشوائياً لكل جلسة جديدة لضمان عدم تكرار نفس الترتيب
+  const shuffledQuestions = [...millionQuestions].sort(() => Math.random() - 0.5);
+
   const gameData = {
     hostId,
     db,
@@ -150,6 +202,7 @@ export async function startMillionGame(messageOrInteraction, db, guildId) {
     players: new Set(),
     activePlayers: new Set(),
     currentQuestionIndex: 0,
+    questions: shuffledQuestions, // حفظ الأسئلة العشوائية الخاصة بهذه اللعبة
     answersInRound: new Map(),
     message: null,
   };
@@ -199,7 +252,7 @@ export function getMillionRecruitmentEmbed(gameData) {
 
 // دالة طرح الأسئلة وجولات اللعبة
 export async function runMillionRound(channel, gameData) {
-  const currentQ = millionQuestions[gameData.currentQuestionIndex];
+  const currentQ = gameData.questions[gameData.currentQuestionIndex];
   gameData.answersInRound.clear();
 
   const buffer = await generateMillionQuestionImage(currentQ);
@@ -209,7 +262,7 @@ export async function runMillionRound(channel, gameData) {
     .setColor("#1E90FF")
     .setDescription(`⏳ **لديك 20 ثانية لاختيار الإجابة بالضغط على الأزرار (1 / 2 / 3 / 4) أدناه!**`)
     .setImage("attachment://million.png")
-    .setFooter({ text: `اللاعبون المستمرون الآن: ${gameData.activePlayers.size}` });
+    .setFooter({ text: `اللاعبون المستمرون الآن: ${gameData.activePlayers.size} | السؤال (${gameData.currentQuestionIndex + 1})` });
 
   // أزرار Discord 1 / 2 / 3 / 4 أسفل الصورة
   const row = new ActionRowBuilder().addComponents(
@@ -256,7 +309,7 @@ export async function runMillionRound(channel, gameData) {
 
     const resultEmbed = new EmbedBuilder()
       .setColor(nextActivePlayers.size > 0 ? "#00FF00" : "#FF0000")
-      .setTitle(`📊 نتائج السؤال ${currentQ.level}`)
+      .setTitle(`📊 نتائج السؤال (${gameData.currentQuestionIndex + 1})`)
       .setDescription(
         `✅ **الإجابة الصحيحة كانت:** الخيار رقم **(${correctOption})**: ${currentQ.options[correctOption - 1]}`
       )
@@ -267,7 +320,7 @@ export async function runMillionRound(channel, gameData) {
 
     await channel.send({ embeds: [resultEmbed] });
 
-    if (nextActivePlayers.size === 0 || gameData.currentQuestionIndex >= millionQuestions.length - 1) {
+    if (nextActivePlayers.size === 0 || gameData.currentQuestionIndex >= gameData.questions.length - 1) {
       gameData.state = "finished";
       millionGames.delete(channel.id);
 
@@ -276,7 +329,7 @@ export async function runMillionRound(channel, gameData) {
         .setTitle("🏁 انتهت رحلة المليون!")
         .setDescription(
           nextActivePlayers.size > 0
-            ? `👑 **الفائزون الذين وصلوا للمليون:**\n` +
+            ? `👑 **الفائزون الأبطال:**\n` +
               Array.from(nextActivePlayers)
                 .map((id) => `<@${id}>`)
                 .join(", ") +
