@@ -13,7 +13,7 @@ import path from "path";
 // خريطة لتخزين ألعاب المليون النشطة لكل قناة
 export const millionGames = new Map();
 
-// قائمة الأسئلة متدرجة الصعوبة (من الأسهل إلى الأصعب وصولاً للمليون)
+// قائمة الأسئلة متدرجة الصعوبة
 const millionQuestions = [
   {
     level: 1,
@@ -52,7 +52,7 @@ const millionQuestions = [
   },
 ];
 
-// دالة مساعدة لتقسيم النصوص الطويلة داخل الصورة
+// دالة مساعدة لتقسيم النصوص الطويلة داخل مربع السؤال
 function wrapText(context, text, x, y, maxWidth, lineHeight) {
   const words = text.split(" ");
   let line = "";
@@ -74,9 +74,9 @@ function wrapText(context, text, x, y, maxWidth, lineHeight) {
   return currentY;
 }
 
-// دالة لتوليد صورة السؤال والخيارات عبر @napi-rs/canvas
+// دالة لتوليد صورة السؤال والخيارات بدقة القالب المطابق (800×420)
 async function generateMillionQuestionImage(currentQ) {
-  const canvas = createCanvas(900, 500);
+  const canvas = createCanvas(800, 420);
   const ctx = canvas.getContext("2d");
 
   const bannerPath = path.resolve("million_banner.png");
@@ -94,45 +94,48 @@ async function generateMillionQuestionImage(currentQ) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  // طبقة تظليل خفيفة لوضوح النصوص
-  ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // كتابة رقم السؤال والجائزة
-  ctx.font = "bold 24px sans-serif";
+  // 1. كتابة رقم السؤال والجائزة داخل التصميم بشكل أنيق بالأعلى
+  ctx.font = "bold 16px sans-serif";
   ctx.fillStyle = "#F1C40F";
-  ctx.textAlign = "right";
-  ctx.fillText(`السؤال ${currentQ.level} | الجائزة: $${currentQ.prize}`, 850, 55);
+  ctx.textAlign = "center";
+  ctx.fillText(`السؤال (${currentQ.level})  |  الجائزة: $${currentQ.prize}`, 400, 32);
 
-  // كتابة نص السؤال
-  ctx.font = "bold 26px sans-serif";
+  // 2. كتابة نص السؤال داخل مربع السؤال العلوي
+  ctx.font = "bold 20px sans-serif";
   ctx.fillStyle = "#FFFFFF";
-  ctx.textAlign = "right";
-  const lastY = wrapText(ctx, currentQ.question, 850, 110, 800, 38);
+  ctx.textAlign = "center";
+  wrapText(ctx, currentQ.question, 400, 78, 700, 28);
 
-  // رسم مربعات الخيارات الأربعة
-  const optionsStartY = Math.max(lastY + 40, 220);
-  const optionHeight = 45;
-  const optionSpacing = 12;
+  // 3. ترتيب الخيارات بنظام 2x2 داخل مربعات القالب المخصصة
+  // الإحداثيات الدقيقة للمربعات الأربعة (يمين/يسار، صف أول/ثاني)
+  const optionConfigs = [
+    { x: 440, y: 172, num: "1", align: "right", textX: 720 }, // الخيار 1 (يمين الصف العلوي)
+    { x: 60,  y: 172, num: "2", align: "left",  textX: 140 }, // الخيار 2 (يسار الصف العلوي)
+    { x: 440, y: 252, num: "3", align: "right", textX: 720 }, // الخيار 3 (يمين الصف السفلي)
+    { x: 60,  y: 252, num: "4", align: "left",  textX: 140 }, // الخيار 4 (يسار الصف السفلي)
+  ];
 
   currentQ.options.forEach((option, index) => {
-    const y = optionsStartY + index * (optionHeight + optionSpacing);
-    
-    ctx.fillStyle = "rgba(15, 30, 60, 0.85)";
-    ctx.fillRect(50, y, 800, optionHeight);
+    const cfg = optionConfigs[index];
 
-    ctx.strokeStyle = "#3498DB";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(50, y, 800, optionHeight);
-
+    // كتابة أرقام الخيارات داخل الدوائر والأشكال الذهبية المخصصة في القالب
+    ctx.font = "bold 18px sans-serif";
     ctx.fillStyle = "#F1C40F";
-    ctx.font = "bold 20px sans-serif";
-    ctx.textAlign = "right";
-    ctx.fillText(`${index + 1}️⃣`, 830, y + 29);
+    ctx.textAlign = "center";
+    
+    // مواقع أيقونات الدوائر الذهبية حسب القالب
+    let circleX = (index === 0 || index === 2) ? 750 : 50;
+    let circleY = (index < 2) ? 190 : 270;
+    ctx.fillText(`${index + 1}`, circleX, circleY + 6);
 
+    // كتابة نص الإجابة داخل المربع
+    ctx.font = "bold 17px sans-serif";
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "19px sans-serif";
-    ctx.fillText(option, 780, y + 29);
+    ctx.textAlign = cfg.align;
+    
+    // قص النص إذا كان طويلاً ليتناسب تماماً داخل المربع
+    let maxOptWidth = 310;
+    ctx.fillText(option, cfg.textX, cfg.y + 26, maxOptWidth);
   });
 
   return canvas.toBuffer("image/png");
@@ -203,7 +206,7 @@ export function getMillionRecruitmentEmbed(gameData) {
     .setFooter({ text: "3RB Games • من سيربح المليون" });
 }
 
-// دالة طرح الأسئلة وجولات اللعبة مع الصورة المدمجة
+// دالة طرح الأسئلة وجولات اللعبة مع الصورة المطابقة وخلو النص الخارجي من السؤال والخيارات
 export async function runMillionRound(channel, gameData) {
   const currentQ = millionQuestions[gameData.currentQuestionIndex];
   gameData.answersInRound.clear();
@@ -213,12 +216,11 @@ export async function runMillionRound(channel, gameData) {
 
   const embed = new EmbedBuilder()
     .setColor("#1E90FF")
-    .setTitle(`💡 السؤال رقم ${currentQ.level} (الجائزة: $${currentQ.prize})`)
-    .setDescription(`⏳ **لديك 20 ثانية لاختيار الإجابة بالضغط على الأزرار أدناه!**`)
+    .setDescription(`⏳ **لديك 20 ثانية لاختيار الإجابة بالضغط على الأزرار (1 / 2 / 3 / 4) أدناه!**`)
     .setImage("attachment://million_question.png")
     .setFooter({ text: `اللاعبون المستمرون الآن: ${gameData.activePlayers.size}` });
 
-  // أزرار الاختيارات الأربعة
+  // أزرار Discord 1 / 2 / 3 / 4 أسفل الصورة
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId("million_ans_1").setLabel("1").setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId("million_ans_2").setLabel("2").setStyle(ButtonStyle.Secondary),
