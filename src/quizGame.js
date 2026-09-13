@@ -1,11 +1,15 @@
-import { AttachmentBuilder } from 'discord.js';
+import { AttachmentBuilder, EmbedBuilder } from 'discord.js';
 import { createCanvas, GlobalFonts, loadImage } from '@napi-rs/canvas';
 import fs from 'fs';
 import path from 'path';
 
-// تسجيل الخط العربي Noto Naskh تلقائياً من المجلد الرئيسي للمشروع
+// =========================================================
+// تسجيل الخط العربي
+// =========================================================
+
 try {
     const fontPath = path.join(process.cwd(), 'NotoNaskhArabic-SemiBold.ttf');
+
     if (fs.existsSync(fontPath)) {
         GlobalFonts.registerFromPath(fontPath, 'NotoNaskh');
         console.log("✅ تم تسجيل خط Noto Naskh Arabic بنجاح!");
@@ -16,11 +20,16 @@ try {
     console.error("❌ خطأ أثناء تسجيل الخط:", e);
 }
 
-// قاعدة بيانات الأسئلة مصنفة بدقة
+// =========================================================
+// قاعدة بيانات الأسئلة
+// =========================================================
+
 const questions = [
+
     // =========================================================
     // عواصم عربية
     // =========================================================
+
     { category: "عواصم عربية", question: "ما هي عاصمة السعودية؟", answer: "الرياض" },
     { category: "عواصم عربية", question: "ما هي عاصمة مصر؟", answer: "القاهرة" },
     { category: "عواصم عربية", question: "ما هي عاصمة الإمارات؟", answer: "أبوظبي" },
@@ -47,6 +56,7 @@ const questions = [
     // =========================================================
     // عواصم عالمية
     // =========================================================
+
     { category: "عواصم عالمية", question: "ما هي عاصمة ألبانيا؟", answer: "تيرانا" },
     { category: "عواصم عالمية", question: "ما هي عاصمة النمسا؟", answer: "فيينا" },
     { category: "عواصم عالمية", question: "ما هي عاصمة بلجيكا؟", answer: "بروكسل" },
@@ -102,7 +112,7 @@ const questions = [
     { category: "عواصم عالمية", question: "ما هي عاصمة نيوزيلندا؟", answer: "ويلينغتون" },
 
     // =========================================================
-    // معلومات عامة - مكتبة موسعة
+    // معلومات عامة
     // =========================================================
 
     { category: "معلومات عامة", question: "ما هو أكبر كوكب في المجموعة الشمسية؟", answer: "المشتري" },
@@ -305,7 +315,7 @@ const questions = [
     { category: "معلومات عامة", question: "ما هو اسم العملية التي تنتج فيها الخلايا الطاقة من الغذاء؟", answer: "التنفس الخلوي" },
 
     // =========================================================
-    // رياضة - مكتبة موسعة
+    // رياضة
     // =========================================================
 
     { category: "رياضة", question: "كم عدد لاعبي فريق كرة القدم داخل الملعب؟", answer: "11" },
@@ -340,7 +350,7 @@ const questions = [
     { category: "رياضة", question: "ما اسم السباق الأولمبي الذي تبلغ مسافته الرسمية 42.195 كيلومترًا؟", answer: "الماراثون" },
 
     // =========================================================
-    // ألغاز - مكتبة موسعة
+    // ألغاز
     // =========================================================
 
     { category: "ألغاز", question: "ما هو الشيء الذي له أسنان ولا يعض؟", answer: "المشط" },
@@ -395,139 +405,348 @@ const questions = [
     { category: "ألغاز", question: "ما هو الشيء الذي إذا فقدته مرة لا تستطيع استعادته كما كان؟", answer: "الوقت" }
 ];
 
+// =========================================================
+// تشغيل لعبة الأسئلة
+// =========================================================
+
 export async function startQuiz(message, mode = 'capitals') {
+
     try {
+
+        // =====================================================
+        // اختيار الأسئلة حسب الوضع
+        // =====================================================
+
         let availableQuestions = questions;
 
-        // التصفية الدقيقة والفصل التام بين الأوامر
         if (mode === 'capitals') {
-            availableQuestions = questions.filter(q => q.category.includes('عواصم'));
+
+            availableQuestions = questions.filter(
+                q => q.category.includes('عواصم')
+            );
+
         } else if (mode === 'general') {
-            availableQuestions = questions.filter(q => !q.category.includes('عواصم'));
+
+            availableQuestions = questions.filter(
+                q => !q.category.includes('عواصم')
+            );
         }
 
-        const q = availableQuestions[Math.floor(Math.random() * availableQuestions.length)] || questions[0];
+        // =====================================================
+        // اختيار سؤال عشوائي
+        // =====================================================
 
-        // استخدام دقة عالية تتناسب مع أبعاد الصورة الخلفية الجديدة
+        const q =
+            availableQuestions[
+                Math.floor(Math.random() * availableQuestions.length)
+            ] || questions[0];
+
+        // =====================================================
+        // إنشاء صورة السؤال
+        // =====================================================
+
         const canvas = createCanvas(1200, 675);
         const ctx = canvas.getContext('2d');
 
-        // تحميل ورسم صورة الخلفية
+        // =====================================================
+        // تحميل الخلفية
+        // =====================================================
+
         try {
-            const bgPath = path.join(process.cwd(), 'quiz-bg.png');
+
+            const bgPath = path.join(
+                process.cwd(),
+                'quiz-bg.png'
+            );
+
             if (fs.existsSync(bgPath)) {
+
                 const background = await loadImage(bgPath);
-                ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
+
+                ctx.drawImage(
+                    background,
+                    0,
+                    0,
+                    canvas.width,
+                    canvas.height
+                );
+
             } else {
-                // خلفية احتياطية داكنة في حال لم يتم العثور على الصورة لسبب ما
+
                 ctx.fillStyle = '#0f172a';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.fillRect(
+                    0,
+                    0,
+                    canvas.width,
+                    canvas.height
+                );
             }
+
         } catch (imgErr) {
-            console.error("خطأ في تحميل صورة الخلفية:", imgErr);
+
+            console.error(
+                "خطأ في تحميل صورة الخلفية:",
+                imgErr
+            );
+
+            ctx.fillStyle = '#0f172a';
+
+            ctx.fillRect(
+                0,
+                0,
+                canvas.width,
+                canvas.height
+            );
         }
 
-        // 1. التصنيف (في أعلى اليسار تماماً كما يظهر في صورتك)
+        // =====================================================
+        // التصنيف
+        // =====================================================
+
         ctx.fillStyle = '#f59e0b';
-        ctx.font = 'bold 26px NotoNaskh, sans-serif';
+
+        ctx.font =
+            'bold 26px NotoNaskh, sans-serif';
+
         ctx.textAlign = 'left';
-        ctx.fillText(`التصنيف: ${q.category}`, 80, 85);
 
-        // 2. العنوان العلوي (في أعلى اليمين تماماً كما يظهر في صورتك)
+        ctx.fillText(
+            `التصنيف: ${q.category}`,
+            80,
+            85
+        );
+
+        // =====================================================
+        // العنوان
+        // =====================================================
+
         ctx.fillStyle = '#f59e0b';
-        ctx.font = 'bold 26px NotoNaskh, sans-serif';
-        ctx.textAlign = 'right';
-        ctx.fillText('تحدي المعرفة', 1120, 85);
 
-        // 3. معالجة ورسم نص السؤال الرئيسي (مع الالتفاف التلقائي لسطرين عند الطول)
+        ctx.font =
+            'bold 26px NotoNaskh, sans-serif';
+
+        ctx.textAlign = 'right';
+
+        ctx.fillText(
+            'تحدي المعرفة',
+            1120,
+            85
+        );
+
+        // =====================================================
+        // السؤال
+        // =====================================================
+
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 50px NotoNaskh, sans-serif';
+
+        ctx.font =
+            'bold 50px NotoNaskh, sans-serif';
+
         ctx.textAlign = 'center';
 
         const maxLineWidth = 1000;
+
         const words = q.question.split(' ');
+
         let line1 = '';
         let line2 = '';
 
         for (let i = 0; i < words.length; i++) {
-            const testLine = line1 + (line1 === '' ? '' : ' ') + words[i];
-            const metrics = ctx.measureText(testLine);
-            if (metrics.width > maxLineWidth && line1 !== '') {
-                line2 = words.slice(i).join(' ');
+
+            const testLine =
+                line1 +
+                (line1 === '' ? '' : ' ') +
+                words[i];
+
+            const metrics =
+                ctx.measureText(testLine);
+
+            if (
+                metrics.width > maxLineWidth &&
+                line1 !== ''
+            ) {
+
+                line2 =
+                    words.slice(i).join(' ');
+
                 break;
+
             } else {
+
                 line1 = testLine;
             }
         }
 
         if (line2 === '') {
-            ctx.fillText(line1, 600, 360);
+
+            ctx.fillText(
+                line1,
+                600,
+                360
+            );
+
         } else {
-            ctx.fillText(line1, 600, 335);
-            ctx.fillText(line2, 600, 400);
+
+            ctx.fillText(
+                line1,
+                600,
+                335
+            );
+
+            ctx.fillText(
+                line2,
+                600,
+                400
+            );
         }
 
-        // 4. نص المؤقت (داخل الزر الشفاف في الأسفل تماماً)
-        ctx.fillStyle = '#f59e0b';
-        ctx.font = 'bold 26px NotoNaskh, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('ثانية للإجابة 20', 600, 545);
+        // =====================================================
+        // المؤقت
+        // =====================================================
 
-        const attachment = new AttachmentBuilder(await canvas.encode('png'), { name: 'arabic-quiz.png' });
+        ctx.fillStyle = '#f59e0b';
+
+        ctx.font =
+            'bold 26px NotoNaskh, sans-serif';
+
+        ctx.textAlign = 'center';
+
+        ctx.fillText(
+            'ثانية للإجابة 20',
+            600,
+            545
+        );
+
+        // =====================================================
+        // تجهيز الصورة
+        // =====================================================
+
+        const attachment =
+            new AttachmentBuilder(
+                await canvas.encode('png'),
+                {
+                    name: 'arabic-quiz.png'
+                }
+            );
+
+        // =====================================================
+        // إرسال السؤال
+        // =====================================================
 
         const startTime = Date.now();
+
         await message.channel.send({
             files: [attachment]
         });
 
-        const filter = response => !response.author.bot;
-        const collector = message.channel.createMessageCollector({ filter, time: 20000 });
+        // =====================================================
+        // مراقبة الإجابات
+        // =====================================================
+
+        const filter =
+            response => !response.author.bot;
+
+        const collector =
+            message.channel.createMessageCollector({
+                filter,
+                time: 20000
+            });
 
         let answered = false;
 
-        collector.on('collect', async response => {
-            if (answered) return;
+        // =====================================================
+        // عند وصول إجابة
+        // =====================================================
 
-            if (response.content.trim() === q.answer) {
-                answered = true;
-                const endTime = Date.now();
-                const timeTaken = ((endTime - startTime) / 1000).toFixed(2);
+        collector.on(
+            'collect',
+            async response => {
 
-                collector.stop();
+                if (answered) return;
 
-                await response.reply({
-                    content: `🎉 كفو <@${response.author.id}>! أجبَت في **${timeTaken} ثانية** 🚀\nالإجابة الصحيحة: **${q.answer}**`
+                // -------------------------------------------------
+                // التحقق من الإجابة
+                // -------------------------------------------------
+
+                if (
+                    response.content.trim() ===
+                    q.answer
+                ) {
+
+                    answered = true;
+
+                    const endTime =
+                        Date.now();
+
+                    const timeTaken =
+                        (
+                            (endTime - startTime) /
+                            1000
+                        ).toFixed(2);
+
+                    collector.stop();
+
+                    // -------------------------------------------------
+                    // رسالة الفوز
+                    // -------------------------------------------------
+
+                    await response.reply({
+
+                        content:
+                            `🎉 كفو <@${response.author.id}>! أجبَت في **${timeTaken} ثانية** 🚀\nالإجابة الصحيحة: **${q.answer}**`
+
+                    });
+                }
+            }
+        );
+
+        // =====================================================
+        // انتهاء الوقت
+        // =====================================================
+
+        collector.on(
+            'end',
+            async collected => {
+
+                if (answered) return;
+
+                // =================================================
+                // Embed انتهاء الوقت
+                // نفس فكرة الصورة الثانية
+                // =================================================
+
+                const timeoutEmbed =
+                    new EmbedBuilder()
+
+                        // الشريط الجانبي الأزرق
+                        .setColor(0x5865F2)
+
+                        // النص الرئيسي
+                        .setDescription(
+                            `⏰ **انتهى الوقت!**\n\n` +
+                            `**الجواب كان: ${q.answer}**`
+                        );
+
+                // =================================================
+                // إرسال الـ Embed
+                // =================================================
+
+                await message.channel.send({
+                    embeds: [timeoutEmbed]
                 });
             }
-        });
-
-        collector.on('end', async collected => {
-            if (!answered) {
-                // تصميم بطاقة انتهاء الوقت كصورة مرسومة مشابهة لتنسيق السؤال
-                const timeoutCanvas = createCanvas(1200, 250);
-                const tCtx = timeoutCanvas.getContext('2d');
-                
-                // خلفية بطاقة الرد الداكنة المتناسقة
-                tCtx.fillStyle = '#1e293b';
-                tCtx.fillRect(0, 0, timeoutCanvas.width, timeoutCanvas.height);
-
-                // نص انتهاء الوقت مع الرمز التعبيري
-                tCtx.fillStyle = '#f87171';
-                tCtx.font = 'bold 35px NotoNaskh, sans-serif';
-                tCtx.textAlign = 'right';
-                tCtx.fillText('⏰ انتهى الوقت! للأسف لم يحرص أحد على الإجابة الصحيحة.', 1150, 90);
-
-                // سطر الإجابة الصحيحة
-                tCtx.fillStyle = '#ffffff';
-                tCtx.fillText(`❌ الجواب كان: ${q.answer}`, 1150, 165);
-
-                const timeoutAttachment = new AttachmentBuilder(await timeoutCanvas.encode('png'), { name: 'timeout-result.png' });
-                await message.channel.send({ files: [timeoutAttachment] });
-            }
-        });
+        );
 
     } catch (error) {
-        console.error("خطأ في تشغيل لعبة الأسئلة:", error);
-        message.channel.send('حدث خطأ أثناء تحميل بطاقة السؤال.');
+
+        console.error(
+            "خطأ في تشغيل لعبة الأسئلة:",
+            error
+        );
+
+        await message.channel.send(
+            'حدث خطأ أثناء تحميل بطاقة السؤال.'
+        );
     }
 }
