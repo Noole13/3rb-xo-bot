@@ -10,14 +10,14 @@ import { addGameWin } from "./scores.js";
 // خريطة لتخزين ألعاب المليون النشطة لكل قناة
 export const millionGames = new Map();
 
-// قائمة الأسئلة متدرجة الصعوبة (من الأسهل إلى الأصعب وصولاً للمليون)
+// قائمة الأسئلة متدرجة الصعوبة
 const millionQuestions = [
   {
     level: 1,
     prize: "100",
     question: "ما هو لون السماء الصافية في النهار؟",
     options: ["أحمر", "أزرق", "أخضر", "أصفر"],
-    correct: 2, // رقم الخيار الصحيح (1 إلى 4)
+    correct: 2,
   },
   {
     level: 2,
@@ -63,7 +63,7 @@ export async function startMillionGame(messageOrInteraction, db, guildId) {
     hostId,
     db,
     guildId,
-    state: "recruiting", // recruiting, playing, finished
+    state: "recruiting",
     players: new Set(),
     activePlayers: new Set(),
     currentQuestionIndex: 0,
@@ -114,16 +114,17 @@ export function getMillionRecruitmentEmbed(gameData) {
     .setFooter({ text: "3RB Games • من سيربح المليون" });
 }
 
-// دالة طرح الأسئلة وجولات اللعبة مع استدعاء الصورة المرفقة
+// دالة طرح الأسئلة وجولات اللعبة مع وضع الصورة في أعلى الـ Embed
 export async function runMillionRound(channel, gameData) {
   const currentQ = millionQuestions[gameData.currentQuestionIndex];
   gameData.answersInRound.clear();
 
-  // إرفاق الصورة من الملفات المرفوعة في المشروع
   const attachment = new AttachmentBuilder("million_banner.png");
 
   const embed = new EmbedBuilder()
     .setColor("#1E90FF")
+    // وضع الصورة في الأعلى لتكون بمثابة بانر ترحيبي للسؤال
+    .setImage("attachment://million_banner.png")
     .setTitle(`💡 السؤال رقم ${currentQ.level} (الجائزة: $${currentQ.prize})`)
     .setDescription(
       `━━━━━━━━━━━━━━━━━━━\n` +
@@ -135,10 +136,8 @@ export async function runMillionRound(channel, gameData) {
       `4️⃣  ${currentQ.options[3]}\n\n` +
       `⏳ **لديك 20 ثانية لاختيار الإجابة بالضغط على الأزرار أدناه!**`
     )
-    .setImage("attachment://million_banner.png")
     .setFooter({ text: `اللاعبون المستمرون الآن: ${gameData.activePlayers.size}` });
 
-  // أزرار الاختيارات الأربعة
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId("million_ans_1").setLabel("1").setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId("million_ans_2").setLabel("2").setStyle(ButtonStyle.Secondary),
@@ -148,18 +147,15 @@ export async function runMillionRound(channel, gameData) {
 
   const msg = await channel.send({ embeds: [embed], files: [attachment], components: [row] });
 
-  // مؤقت لمدة 20 ثانية لتلقي الإجابات
   setTimeout(async () => {
     if (gameData.state !== "playing") return;
 
-    // تعطيل الأزرار بعد انتهاء الوقت
     await msg.edit({ components: [] }).catch(() => {});
 
     const correctOption = currentQ.correct;
     const nextActivePlayers = new Set();
     const eliminatedPlayers = [];
 
-    // تصفية اللاعبين
     for (const playerId of gameData.activePlayers) {
       const chosenAnswer = gameData.answersInRound.get(playerId);
       if (chosenAnswer === correctOption) {
@@ -196,7 +192,6 @@ export async function runMillionRound(channel, gameData) {
 
     await channel.send({ embeds: [resultEmbed] });
 
-    // التحقق هل انتهت اللعبة
     if (nextActivePlayers.size === 0 || gameData.currentQuestionIndex >= millionQuestions.length - 1) {
       gameData.state = "finished";
       millionGames.delete(channel.id);
@@ -216,7 +211,7 @@ export async function runMillionRound(channel, gameData) {
 
       if (nextActivePlayers.size > 0 && gameData.db) {
         for (const winnerId of nextActivePlayers) {
-          await addGameWin(gameData.db, gameData.guildId, winnerId, "million");
+          addGameWin(gameData.db, gameData.guildId, winnerId, "million");
         }
       }
 
@@ -224,7 +219,6 @@ export async function runMillionRound(channel, gameData) {
       return;
     }
 
-    // الانتقال للسؤال التالي بعد 4 ثوانٍ
     gameData.currentQuestionIndex++;
     setTimeout(() => {
       if (gameData.state === "playing") {
