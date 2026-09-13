@@ -1,4 +1,5 @@
 import { AttachmentBuilder, EmbedBuilder } from 'discord.js';
+import { addGameWin } from "./scores.js";
 
 // قاعدة بيانات الأعلام والدول
 const flagsData = [
@@ -180,7 +181,7 @@ const flagsData = [
     { name: "جزر سليمان", code: "sb" }
 ];
 
-export async function startFlagQuiz(message) {
+export async function startFlagQuiz(message, db) {
     try {
         // اختيار علم عشوائي
         const flagItem = flagsData[Math.floor(Math.random() * flagsData.length)];
@@ -214,6 +215,11 @@ export async function startFlagQuiz(message) {
                 const timeTaken = ((endTime - startTime) / 1000).toFixed(2);
 
                 collector.stop();
+
+                // حفظ النقاط في قاعدة البيانات (نوع اللعبة هنا flags)
+                if (db) {
+                    await addGameWin(db, message.guild.id, response.author.id, 'flags');
+                }
 
                 // إرسال رسالة الفوز عبر الإمبد
                 const winEmbed = new EmbedBuilder()
