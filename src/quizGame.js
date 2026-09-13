@@ -501,9 +501,28 @@ export async function startQuiz(message, mode = 'capitals') {
             }
         });
 
-        collector.on('end', collected => {
+        collector.on('end', async collected => {
             if (!answered) {
-                message.channel.send(`⏰ انتهى الوقت يا شباب! للأسف لم يحرص أحد على الإجابة الصحيحة.\nالإجابة كانت: **${q.answer}** ❌`);
+                // تصميم بطاقة انتهاء الوقت كصورة مرسومة مشابهة لتنسيق السؤال
+                const timeoutCanvas = createCanvas(1200, 250);
+                const tCtx = timeoutCanvas.getContext('2d');
+                
+                // خلفية بطاقة الرد الداكنة المتناسقة
+                tCtx.fillStyle = '#1e293b';
+                tCtx.fillRect(0, 0, timeoutCanvas.width, timeoutCanvas.height);
+
+                // نص انتهاء الوقت مع الرمز التعبيري
+                tCtx.fillStyle = '#f87171';
+                tCtx.font = 'bold 35px NotoNaskh, sans-serif';
+                tCtx.textAlign = 'right';
+                tCtx.fillText('⏰ انتهى الوقت! للأسف لم يحرص أحد على الإجابة الصحيحة.', 1150, 90);
+
+                // سطر الإجابة الصحيحة
+                tCtx.fillStyle = '#ffffff';
+                tCtx.fillText(`❌ الجواب كان: ${q.answer}`, 1150, 165);
+
+                const timeoutAttachment = new AttachmentBuilder(await timeoutCanvas.encode('png'), { name: 'timeout-result.png' });
+                await message.channel.send({ files: [timeoutAttachment] });
             }
         });
 
