@@ -19,95 +19,95 @@ if (fs.existsSync(fontPath)) {
 // خريطة لتخزين ألعاب المليون النشطة لكل قناة
 export const millionGames = new Map();
 
-// قائمة كبيرة ومتنوعة من الأسئلة الصعبة على غرار برنامج من سيربح المليون
-const millionQuestions = [
-  {
-    level: 1,
-    prize: "100",
-    question: "ما هو العنصر الكيميائي الذي يرمز له بالحرف (Au)؟",
-    options: ["فضة", "ذهب", "نحاس", "حديد"],
-    correct: 2,
-  },
-  {
-    level: 2,
-    prize: "1,000",
-    question: "في أي معركة إسلامية استشهد الصحابي جعفر بن أبي طالب؟",
-    options: ["معركة مؤتة", "معركة اليمامة", "معركة القادسية", "معركة أجنادين"],
-    correct: 1,
-  },
-  {
-    level: 3,
-    prize: "10,000",
-    question: "ما هي عاصمة دولة أستراليا التي يجهلها الكثيرون؟",
-    options: ["سيدني", "ملبورن", "كانبيرا", "بريزبان"],
-    correct: 3,
-  },
-  {
-    level: 4,
-    prize: "100,000",
-    question: "من هو العالم المسلم الذي يُعتبر المؤسس الحقيقي لعلم الجبر؟",
-    options: ["الحسن بن الهيثم", "الخوارزمي", "ابن خلدون", "جابر بن حيان"],
-    correct: 2,
-  },
-  {
-    level: 5,
-    prize: "1,000,000 🏆",
-    question: "ما هو الكوكب الوحيد في المجموعة الشمسية الذي يدور حول محوره مع عقارب الساعة؟",
-    options: ["المريخ", "زحل", "الزهرة", "عطارد"],
-    correct: 3,
-  },
-  {
-    level: 6,
-    prize: "500",
-    question: "ما هي الدولة الأكثر إنتاجاً للقهوة في العالم؟",
-    options: ["كولومبيا", "فيتنام", "البرازيل", "إثيوبيا"],
-    correct: 3,
-  },
-  {
-    level: 7,
-    prize: "2,000",
-    question: "ما هو أطول نهر في العالم؟",
-    options: ["نهر الأمازون", "نهر النيل", "نهر المسيسيبي", "نهر يانغتسي"],
-    correct: 2,
-  },
-  {
-    level: 8,
-    prize: "20,000",
-    question: "في أي عهد تم بناء قبة الصخرة المشرفة؟",
-    options: ["العصر العباسي", "العصر الأموي", "العصر الفاطمي", "العصر العثماني"],
-    correct: 2,
-  },
-  {
-    level: 9,
-    prize: "200,000",
-    question: "ما هو اسم الغاز الذي يُعرف بغاز الضحك؟",
-    options: ["أكسيد النيتروز", "أول أكسيد الكربون", "الميثان", "الأوزون"],
-    correct: 1,
-  },
-  {
-    level: 10,
-    prize: "1,000,000 🏆",
-    question: "من هو المعماري الشهير مصمم متحف غوغنهيم في بلباو؟",
-    options: ["زها حديد", "فرانك جيري", "نورمان فوستر", "لي كوربوزيه"],
-    correct: 2,
-  },
-  {
-    level: 11,
-    prize: "1,000",
-    question: "ما هي السورة القرآنية التي تُسمى سنام القرآن؟",
-    options: ["سورة يس", "سورة البقرة", "سورة الملك", "سورة الفاتحة"],
-    correct: 2,
-  },
-  {
-    level: 12,
-    prize: "5,000",
-    question: "من هو القائد العسكري الذي فتح جزيرة صقلية؟",
-    options: ["طارق بن زياد", "أسد بن الفرات", "قتيبة بن مسلم", "عقبة بن نافع"],
-    correct: 2,
-  }
-];
+// الجوائز الثابتة لكل مستوى (1 إلى 5)
+const PRIZES = ["100", "1,000", "10,000", "100,000", "1,000,000 🏆"];
 
-// دالة مساعدة لتقسيم النصوص الطويلة وتوسيطها داخل مربع السؤال العلوي
+// مكتبة الأسئلة الكاملة، مقسّمة حسب مستوى الصعوبة
+const questionsBank = {
+  1: [
+    { question: "ما هو لون السماء الصافية في النهار؟", options: ["أحمر", "أزرق", "أخضر", "أصفر"], correct: 2 },
+    { question: "كم عدد أيام الأسبوع؟", options: ["5", "6", "7", "8"], correct: 3 },
+    { question: "ما هي عاصمة المملكة العربية السعودية؟", options: ["جدة", "الرياض", "مكة المكرمة", "الدمام"], correct: 2 },
+    { question: "كم عدد أصابع اليد الواحدة؟", options: ["4", "5", "6", "10"], correct: 2 },
+    { question: "ما هو أكبر كوكب في المجموعة الشمسية؟", options: ["الأرض", "المريخ", "المشتري", "زحل"], correct: 3 },
+    { question: "ما هي اللغة الرسمية في مصر؟", options: ["الفرنسية", "الإنجليزية", "العربية", "التركية"], correct: 3 },
+    { question: "كم عدد شهور السنة الميلادية؟", options: ["10", "11", "12", "13"], correct: 3 },
+    { question: "ما هو الحيوان الملقب بملك الغابة؟", options: ["النمر", "الأسد", "الفيل", "الذئب"], correct: 2 },
+    { question: "ما هو أطول نهر في العالم؟", options: ["الأمازون", "النيل", "دجلة", "الفرات"], correct: 2 },
+    { question: "كم عدد ألوان قوس قزح؟", options: ["5", "6", "7", "8"], correct: 3 },
+    { question: "ما هو الكوكب الذي نعيش عليه؟", options: ["المريخ", "الأرض", "الزهرة", "عطارد"], correct: 2 },
+    { question: "ما هي الوجبة التي تؤكل في الصباح عادة؟", options: ["الغداء", "العشاء", "الفطور", "السحور"], correct: 3 },
+  ],
+  2: [
+    { question: "كم عدد أيام السنة الهجرية؟", options: ["354 أو 355 يوماً", "365 يوماً", "366 يوماً", "300 يوم"], correct: 1 },
+    { question: "من هو مؤسس الدولة السعودية الأولى؟", options: ["الملك عبدالعزيز", "محمد بن سعود", "فيصل بن تركي", "سعود الكبير"], correct: 2 },
+    { question: "ما هي عاصمة كوريا الجنوبية؟", options: ["سيول", "طوكيو", "بكين", "مانيلا"], correct: 1 },
+    { question: "كم عدد أركان الإسلام؟", options: ["3", "4", "5", "6"], correct: 3 },
+    { question: "ما هي عملة دولة الإمارات العربية المتحدة؟", options: ["الريال", "الدرهم", "الدينار", "الجنيه"], correct: 2 },
+    { question: "من هو النبي الذي ابتلعه الحوت؟", options: ["يونس عليه السلام", "موسى عليه السلام", "عيسى عليه السلام", "يوسف عليه السلام"], correct: 1 },
+    { question: "كم عدد قارات العالم؟", options: ["5", "6", "7", "8"], correct: 3 },
+    { question: "ما هو أصغر محيط في العالم من حيث المساحة؟", options: ["الهادئ", "الأطلسي", "المتجمد الشمالي", "الهندي"], correct: 3 },
+    { question: "في أي مدينة يقع برج خليفة؟", options: ["أبوظبي", "دبي", "الشارقة", "الدوحة"], correct: 2 },
+    { question: "ما هي أول سورة نزلت كاملة في القرآن الكريم؟", options: ["الفاتحة", "العلق", "البقرة", "الإخلاص"], correct: 1 },
+    { question: "ما هي أكبر صحراء حارة في العالم؟", options: ["صحراء الربع الخالي", "الصحراء الكبرى", "صحراء كلاهاري", "صحراء غوبي"], correct: 2 },
+    { question: "كم عدد اللاعبين الأساسيين في فريق كرة القدم الواحد؟", options: ["9", "10", "11", "12"], correct: 3 },
+  ],
+  3: [
+    { question: "ما هي عاصمة دولة اليابان؟", options: ["سيول", "بكين", "طوكيو", "بانكوك"], correct: 3 },
+    { question: "من هو العالم المسلم الذي يلقب بأبو الجبر؟", options: ["ابن سينا", "الخوارزمي", "ابن الهيثم", "الرازي"], correct: 2 },
+    { question: "ما هي أطول سورة في القرآن الكريم؟", options: ["آل عمران", "النساء", "البقرة", "المائدة"], correct: 3 },
+    { question: "في أي عام تم فتح مكة المكرمة؟", options: ["السنة الثامنة للهجرة", "السنة السادسة للهجرة", "السنة العاشرة للهجرة", "السنة الثانية للهجرة"], correct: 1 },
+    { question: "ما هو أعلى جبل في العالم؟", options: ["كي2", "إفرست", "كليمنجارو", "إلبروس"], correct: 2 },
+    { question: "من هو مخترع المصباح الكهربائي؟", options: ["نيوتن", "أديسون", "أينشتاين", "تسلا"], correct: 2 },
+    { question: "ما هي عملة المملكة المتحدة؟", options: ["اليورو", "الدولار", "الجنيه الإسترليني", "الفرنك"], correct: 3 },
+    { question: "كم عدد عظام جسم الإنسان البالغ تقريباً؟", options: ["106", "156", "206", "256"], correct: 3 },
+    { question: "من هو مؤلف كتاب 'ألف ليلة وليلة' الأصلي؟", options: ["أنطوان غالان", "ريتشارد بيرتون", "إدوارد لين", "بورخيس"], correct: 1 },
+    { question: "ما هي أكبر دولة عربية من حيث المساحة؟", options: ["مصر", "السعودية", "الجزائر", "السودان"], correct: 3 },
+    { question: "في أي قارة تقع دولة مصر؟", options: ["آسيا", "أوروبا", "إفريقيا", "أمريكا الجنوبية"], correct: 3 },
+    { question: "ما هو الغاز الذي يحتاجه الإنسان للتنفس؟", options: ["ثاني أكسيد الكربون", "النيتروجين", "الأكسجين", "الهيدروجين"], correct: 3 },
+  ],
+  4: [
+    { question: "في أي عام هبط الإنسان على سطح القمر لأول مرة؟", options: ["1965", "1969", "1973", "1981"], correct: 2 },
+    { question: "من هو الخليفة الراشدي الرابع؟", options: ["أبو بكر الصديق", "عمر بن الخطاب", "عثمان بن عفان", "علي بن أبي طالب"], correct: 4 },
+    { question: "ما هي عاصمة أستراليا؟", options: ["سيدني", "ملبورن", "كانبيرا", "بيرث"], correct: 3 },
+    { question: "من هو مكتشف قوانين الجاذبية؟", options: ["أينشتاين", "نيوتن", "غاليليو", "كوبرنيكوس"], correct: 2 },
+    { question: "كم عدد اللغات الرسمية في الأمم المتحدة؟", options: ["4", "5", "6", "7"], correct: 3 },
+    { question: "ما هو أصغر بلد في العالم من حيث المساحة؟", options: ["موناكو", "الفاتيكان", "سان مارينو", "ليختنشتاين"], correct: 2 },
+    { question: "من هو مؤلف الملحمة الشعرية 'الإلياذة'؟", options: ["سقراط", "أفلاطون", "هوميروس", "أرسطو"], correct: 3 },
+    { question: "في أي معركة انتصر المسلمون على الفرس نصراً حاسماً وسقطت بعده دولتهم؟", options: ["اليرموك", "القادسية", "بدر", "حطين"], correct: 2 },
+    { question: "ما هو العنصر الكيميائي الذي رمزه 'Au'؟", options: ["الفضة", "الحديد", "الذهب", "النحاس"], correct: 3 },
+    { question: "من هو أول رئيس لجمهورية مصر العربية بعد إلغاء الملكية؟", options: ["جمال عبدالناصر", "محمد نجيب", "أنور السادات", "حسني مبارك"], correct: 2 },
+    { question: "ما هي أطول فترة صيام في اليوم بين دول العالم الإسلامي غالباً ما ترتبط بأي فصل؟", options: ["الشتاء", "الصيف", "الربيع", "الخريف"], correct: 2 },
+    { question: "كم تبلغ سرعة الضوء تقريباً في الفراغ (كم/ثانية)؟", options: ["150 ألف", "300 ألف", "500 ألف", "900 ألف"], correct: 2 },
+  ],
+  5: [
+    { question: "من هو القائد المسلم الذي انتصر في معركة عين جالوت؟", options: ["صلاح الدين الأيوبي", "بيبرس", "سيف الدين قطز", "طغرل بك"], correct: 3 },
+    { question: "في أي عام سقطت الأندلس بشكل نهائي بسقوط غرناطة؟", options: ["1392م", "1492م", "1592م", "1292م"], correct: 2 },
+    { question: "من هو مؤلف كتاب 'مقدمة ابن خلدون'؟", options: ["ابن رشد", "ابن خلدون", "ابن بطوطة", "الطبري"], correct: 2 },
+    { question: "ما اسم أول قمر صناعي أُطلق إلى الفضاء؟", options: ["أبولو 11", "سبوتنيك 1", "فوستوك 1", "هابل"], correct: 2 },
+    { question: "من هو الخليفة الأموي الذي بنى قبة الصخرة في القدس؟", options: ["معاوية بن أبي سفيان", "عبدالملك بن مروان", "الوليد بن عبدالملك", "عمر بن عبدالعزيز"], correct: 2 },
+    { question: "ما هو اسم أطول جدار دفاعي في التاريخ يقع في الصين؟", options: ["سور الصين العظيم", "جدار هادريان", "خط ماجينو", "جدار برلين"], correct: 1 },
+    { question: "من هو العالم المسلم الذي يعتبر رائد علم البصريات الحديث؟", options: ["ابن سينا", "ابن الهيثم", "الخوارزمي", "الرازي"], correct: 2 },
+    { question: "في أي عام وقعت غزوة بدر الكبرى؟", options: ["السنة الأولى للهجرة", "السنة الثانية للهجرة", "السنة الثالثة للهجرة", "السنة الخامسة للهجرة"], correct: 2 },
+    { question: "ما اسم المعاهدة التي أنهت الحرب العالمية الأولى رسمياً؟", options: ["معاهدة فرساي", "معاهدة يالطا", "معاهدة سايكس بيكو", "معاهدة لوزان"], correct: 1 },
+    { question: "من هو مكتشف البنسلين؟", options: ["ألكسندر فليمنغ", "لويس باستور", "روبرت كوخ", "إدوارد جينر"], correct: 1 },
+    { question: "ما هي أول جامعة في التاريخ لا تزال قائمة إلى اليوم، وتقع في المغرب؟", options: ["جامعة الأزهر", "جامعة القرويين", "جامعة قرطبة", "جامعة بغداد"], correct: 2 },
+    { question: "من هو القائد الذي فتح بلاد الأندلس؟", options: ["طارق بن زياد", "موسى بن نصير", "عقبة بن نافع", "يوسف بن تاشفين"], correct: 1 },
+  ],
+};
+
+function pickRandomQuestion(level) {
+  const pool = questionsBank[level];
+  const picked = pool[Math.floor(Math.random() * pool.length)];
+  return {
+    level,
+    prize: PRIZES[level - 1],
+    question: picked.question,
+    options: picked.options,
+    correct: picked.correct,
+  };
+}
+
 function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
   const words = text.split(" ");
   let lines = [];
@@ -130,7 +130,6 @@ function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
   });
 }
 
-// دالة لتوليد صورة السؤال والخيارات بالإحداثيات الدقيقة والمضبوطة
 async function generateMillionQuestionImage(currentQ) {
   const canvas = createCanvas(800, 420);
   const ctx = canvas.getContext("2d");
@@ -150,10 +149,10 @@ async function generateMillionQuestionImage(currentQ) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  ctx.font = "bold 26px ArabicFont, sans-serif";
+  ctx.font = "bold 30px ArabicFont, sans-serif";
   ctx.fillStyle = "#FFFFFF";
   ctx.textAlign = "center";
-  drawWrappedText(ctx, currentQ.question, 400, 234, 555, 24);
+  drawWrappedText(ctx, currentQ.question, 400, 234, 555, 17);
 
   const optionConfigs = [
     { text: currentQ.options[0], x: 655, y: 304, num: "1", circleX: 715, circleY: 302, align: "right" },
@@ -163,7 +162,7 @@ async function generateMillionQuestionImage(currentQ) {
   ];
 
   optionConfigs.forEach((opt) => {
-    ctx.font = "bold 24px ArabicFont, sans-serif";
+    ctx.font = "bold 26px ArabicFont, sans-serif";
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = opt.align;
     ctx.fillText(opt.text, opt.x, opt.y + 5, 260);
@@ -177,7 +176,6 @@ async function generateMillionQuestionImage(currentQ) {
   return canvas.toBuffer("image/png");
 }
 
-// دالة بدء اللعبة
 export async function startMillionGame(messageOrInteraction, db, guildId) {
   const channelId = messageOrInteraction.channelId;
 
@@ -186,7 +184,6 @@ export async function startMillionGame(messageOrInteraction, db, guildId) {
   }
 
   const hostId = messageOrInteraction.user ? messageOrInteraction.user.id : messageOrInteraction.author.id;
-  const shuffledQuestions = [...millionQuestions].sort(() => Math.random() - 0.5);
 
   const gameData = {
     hostId,
@@ -196,7 +193,6 @@ export async function startMillionGame(messageOrInteraction, db, guildId) {
     players: new Set(),
     activePlayers: new Set(),
     currentQuestionIndex: 0,
-    questions: shuffledQuestions,
     answersInRound: new Map(),
     message: null,
   };
@@ -205,7 +201,6 @@ export async function startMillionGame(messageOrInteraction, db, guildId) {
   return { success: true, gameData };
 }
 
-// أزرار التسجيل والانضمام للعبة
 export function getMillionRecruitmentComponents() {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
@@ -226,7 +221,6 @@ export function getMillionRecruitmentComponents() {
   );
 }
 
-// واجهة رسالة التسجيل
 export function getMillionRecruitmentEmbed(gameData) {
   const playerList =
     gameData.players.size > 0
@@ -244,7 +238,6 @@ export function getMillionRecruitmentEmbed(gameData) {
     .setFooter({ text: "3RB Games • من سيربح المليون" });
 }
 
-// معالج الأزرار الخاص بمرحلة التسجيل (يحدث رسالة الـ Embed تلقائياً عند انضمام أي شخص)
 export async function handleMillionButton(interaction) {
   const channelId = interaction.channelId;
   const gameData = millionGames.get(channelId);
@@ -261,15 +254,14 @@ export async function handleMillionButton(interaction) {
 
     gameData.players.add(userId);
 
-    // تحديث رسالة التسجيل فوراً لتظهر الأسماء والعدد الجديد بالترقيم
     const updatedEmbed = getMillionRecruitmentEmbed(gameData);
     await interaction.update({ embeds: [updatedEmbed] });
   }
 }
 
-// دالة طرح الأسئلة وجولات اللعبة
 export async function runMillionRound(channel, gameData) {
-  const currentQ = gameData.questions[gameData.currentQuestionIndex];
+  const level = gameData.currentQuestionIndex + 1;
+  const currentQ = pickRandomQuestion(level);
   gameData.answersInRound.clear();
 
   const buffer = await generateMillionQuestionImage(currentQ);
@@ -279,7 +271,7 @@ export async function runMillionRound(channel, gameData) {
     .setColor("#1E90FF")
     .setDescription(`⏳ **لديك 20 ثانية لاختيار الإجابة بالضغط على الأزرار (1 / 2 / 3 / 4) أدناه!**`)
     .setImage("attachment://million.png")
-    .setFooter({ text: `اللاعبون المستمرون الآن: ${gameData.activePlayers.size} | السؤال (${gameData.currentQuestionIndex + 1})` });
+    .setFooter({ text: `اللاعبون المستمرون الآن: ${gameData.activePlayers.size}` });
 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId("million_ans_1").setLabel("1").setStyle(ButtonStyle.Secondary),
@@ -324,7 +316,7 @@ export async function runMillionRound(channel, gameData) {
 
     const resultEmbed = new EmbedBuilder()
       .setColor(nextActivePlayers.size > 0 ? "#00FF00" : "#FF0000")
-      .setTitle(`📊 نتائج السؤال (${gameData.currentQuestionIndex + 1})`)
+      .setTitle(`📊 نتائج السؤال ${currentQ.level}`)
       .setDescription(
         `✅ **الإجابة الصحيحة كانت:** الخيار رقم **(${correctOption})**: ${currentQ.options[correctOption - 1]}`
       )
@@ -335,7 +327,7 @@ export async function runMillionRound(channel, gameData) {
 
     await channel.send({ embeds: [resultEmbed] });
 
-    if (nextActivePlayers.size === 0 || gameData.currentQuestionIndex >= gameData.questions.length - 1) {
+    if (nextActivePlayers.size === 0 || gameData.currentQuestionIndex >= PRIZES.length - 1) {
       gameData.state = "finished";
       millionGames.delete(channel.id);
 
@@ -344,7 +336,7 @@ export async function runMillionRound(channel, gameData) {
         .setTitle("🏁 انتهت رحلة المليون!")
         .setDescription(
           nextActivePlayers.size > 0
-            ? `👑 **الفائزون الأبطال:**\n` +
+            ? `👑 **الفائزون الذين وصلوا للمليون:**\n` +
               Array.from(nextActivePlayers)
                 .map((id) => `<@${id}>`)
                 .join(", ") +
