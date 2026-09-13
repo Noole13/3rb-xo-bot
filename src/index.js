@@ -34,6 +34,15 @@ import {
   runNextRound,
 } from "./chairsGame.js";
 
+// استيراد لعبة من سيربح المليون
+import {
+  millionGames,
+  startMillionGame,
+  getMillionRecruitmentComponents,
+  getMillionRecruitmentEmbed,
+  runMillionRound,
+} from "./millionGame.js";
+
 // استيراد أمر التحديثات من الملف المنفصل
 import { announcementCommand, executeAnnouncement } from "./announcements.js";
 
@@ -160,7 +169,8 @@ const topCommand = new SlashCommandBuilder()
         { name: "🪑 لعبة الكراسي", value: "chairs" },
         { name: "🌍 لعبة العواصم", value: "capitals" },
         { name: "🧠 الأسئلة العامة", value: "general" },
-        { name: "🏴 لعبة الأعلام", value: "flags" }
+        { name: "🏴 لعبة الأعلام", value: "flags" },
+        { name: "💰 من سيربح المليون", value: "million" }
       )
   );
 
@@ -179,6 +189,10 @@ const chairsCommand = new SlashCommandBuilder()
   .setName("كراسي")
   .setDescription("بدء لعبة الكراسي الموسيقية الجماعية في الشات");
 
+const millionCommand = new SlashCommandBuilder()
+  .setName("مليون")
+  .setDescription("بدء مسابقة من سيربح المليون الجماعية في الشات");
+
 /*
 |--------------------------------------------------------------------------
 | Register Slash Commands
@@ -194,6 +208,7 @@ async function registerCommands() {
       topCommand.toJSON(),
       setChannelCommand.toJSON(),
       chairsCommand.toJSON(),
+      millionCommand.toJSON(),
       announcementCommand.toJSON(),
     ],
   });
@@ -319,6 +334,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             capitals: "🌍 لعبة العواصم",
             general: "🧠 الأسئلة العامة",
             flags: "🏴 لعبة الأعلام",
+            million: "💰 من سيربح المليون",
           };
 
           const embed = new EmbedBuilder()
@@ -453,6 +469,54 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       /*
       |--------------------------------------------------------------------------
+      | /مليون (مسابقة من سيربح المليون)
+      |--------------------------------------------------------------------------
+      */
+      if (interaction.commandName === "مليون") {
+        const allowedChannelId = await getGameChannel(interaction.guildId);
+
+        if (!allowedChannelId) {
+          await interaction.reply({
+            content:
+              "⚠️ لم يتم تحديد قناة للألعاب بعد! يرجى من أحد المشرفين استخدام أمر السلاش `/تعيين-قناة` للبدء.",
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
+        }
+
+        if (interaction.channelId !== allowedChannelId) {
+          await interaction.reply({
+            content: `⚠️ يرجى استخدام ألعاب البوت في القناة المخصصة فقط: <#${allowedChannelId}>!`,
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
+        }
+
+        const res = await startMillionGame(interaction, db, interaction.guildId);
+        if (!res.success) {
+          await interaction.reply({
+            content: res.message,
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
+        }
+
+        const gameData = res.gameData;
+        const embed = getMillionRecruitmentEmbed(gameData);
+        const components = getMillionRecruitmentComponents();
+
+        const replyMsg = await interaction.reply({
+          embeds: [embed],
+          components: [components],
+          fetchReply: true,
+        });
+
+        gameData.message = replyMsg;
+        return;
+      }
+
+      /*
+      |--------------------------------------------------------------------------
       | /xo
       |--------------------------------------------------------------------------
       */
@@ -524,6 +588,132 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     if (!interaction.isButton()) {
       return;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Million Game Buttons
+    |--------------------------------------------------------------------------
+    */
+    if (interaction.customId.startsWith("million_")) {
+      const channelId = interaction.channelId;
+      const gameData = millionGames.get(channelId);
+
+      if (!gameData) {
+        return interaction.reply({
+          content: "❌ لا توجد مسابقة 'من سيربح المليون' نشطة في هذه القناة حالياً.",
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      const userId = interaction.user.id;
+
+      if (interaction.customId === "million_join") {
+        if (gameData.state !== "recruiting") {
+          return interaction.reply({
+            content: "❌ لقد بدأت المسابقة بالفعل، لا يمكنك الانضمام الآن!",
+            flags: MessageFlags.Ephemeral,
+          });
+        }
+
+        if (gameData.players.has(userId)) {
+          return interaction.reply({
+            content: "⚠️ أنت منضم بالفعل إلى المسابقة!",
+            flags: MessageFlags.Ephemeral,
+          });
+        }
+
+        gameData.players.add(userId);
+        await interaction.update({
+          embeds: [getMillionRecruitmentEmbed(gameData)],
+        });
+        return;
+      }
+
+      if (interaction.customId === "million_start") {
+        if (
+          userId !== gameData.hostId &&
+          !interaction.member.permissions.has("ManageChannels")
+        ) {
+          return interaction.reply({
+            content: "❌ صاحب المسابقة أو المشرفون فقط هم من يمكنهم بدء التحدي!",
+            flags: MessageFlags.Ephemeral,
+          });
+        }
+
+        if (gameData.players.size < 1) {
+          return interaction.reply({
+            content: "⚠️ يجب وجود مشارك واحد على الأقل لبدء التحدي!",
+            flags: MessageFlags.Ephemeral,
+          });
+        }
+
+        gameData.state = "playing";
+        gameData.activePlayers = new Set(gameData.players);
+
+        await interaction.update({
+          content: "💰 **بدأت مسابقة من سيربح المليون! استعدوا للسؤال الأول...**",
+          embeds: [getMillionRecruitmentEmbed(gameData)],
+          components: [],
+        });
+
+        setTimeout(() => {
+          runMillionRound(interaction.channel, gameData);
+        }, 1000);
+
+        return;
+      }
+
+      if (interaction.customId === "million_cancel") {
+        if (
+          userId !== gameData.hostId &&
+          !interaction.member.permissions.has("ManageChannels")
+        ) {
+          return interaction.reply({
+            content: "❌ صاحب المسابقة أو المشرفون فقط يمكنهم إلغاؤها!",
+            flags: MessageFlags.Ephemeral,
+          });
+        }
+
+        millionGames.delete(channelId);
+        await interaction.update({
+          content: "❌ **تم إلغاء مسابقة من سيربح المليون بنجاح.**",
+          embeds: [],
+          components: [],
+        });
+        return;
+      }
+
+      if (interaction.customId.startsWith("million_ans_")) {
+        if (gameData.state !== "playing") {
+          return interaction.reply({
+            content: "❌ انتهى الوقت أو أن الجولة غير نشطة حالياً!",
+            flags: MessageFlags.Ephemeral,
+          });
+        }
+
+        if (!gameData.activePlayers.has(userId)) {
+          return interaction.reply({
+            content: "❌ أنت لست مستمراً في هذه المسابقة (إما لم تنضم أو تم إقصاؤك سابقاً).",
+            flags: MessageFlags.Ephemeral,
+          });
+        }
+
+        if (gameData.answersInRound.has(userId)) {
+          return interaction.reply({
+            content: "⚠️ لقد اخترت إجابتك مسبقاً! انتظر حتى انتهاء الوقت.",
+            flags: MessageFlags.Ephemeral,
+          });
+        }
+
+        const chosenOption = Number(interaction.customId.replace("million_ans_", ""));
+        gameData.answersInRound.set(userId, chosenOption);
+
+        return interaction.reply({
+          content: `✅ تم تسجيل إجابتك (**الخيار ${chosenOption}**) بنجاح! انتظر إعلان النتيجة.`,
+          flags: MessageFlags.Ephemeral,
+        });
+      }
     }
 
     /*
@@ -814,6 +1004,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
       }
 
+      game.finished.true = true;
       game.finished = true;
       await interaction.update({
         components: [...createBoard(gameId), ...createGameButtons(gameId, true)],
