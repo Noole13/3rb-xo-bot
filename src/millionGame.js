@@ -5,10 +5,16 @@ import {
   ButtonStyle,
   AttachmentBuilder,
 } from "discord.js";
-import { createCanvas, loadImage } from "@napi-rs/canvas";
+import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas";
 import { addGameWin } from "./scores.js";
 import fs from "fs";
 import path from "path";
+
+// تسجيل الخط العربي لكي تظهر الحروف متصلة وصحيحة داخل الكانفاس
+const fontPath = path.resolve("NotoNaskhArabic-SemiBold.ttf");
+if (fs.existsSync(fontPath)) {
+  GlobalFonts.registerFromPath(fontPath, "ArabicFont");
+}
 
 // خريطة لتخزين ألعاب المليون النشطة لكل قناة
 export const millionGames = new Map();
@@ -52,7 +58,7 @@ const millionQuestions = [
   },
 ];
 
-// دالة مساعدة لتقسيم النصوص الطويلة داخل مربع السؤال
+// دالة مساعدة لتقسيم النصوص الطويلة داخل مربع السؤال مع استخدام الخط العربي
 function wrapText(context, text, x, y, maxWidth, lineHeight) {
   const words = text.split(" ");
   let line = "";
@@ -74,12 +80,12 @@ function wrapText(context, text, x, y, maxWidth, lineHeight) {
   return currentY;
 }
 
-// دالة لتوليد صورة السؤال والخيارات بدقة القالب المطابق (800×420)
+// دالة لتوليد صورة السؤال والخيارات بالاسم الجديد للقالب (million.png)
 async function generateMillionQuestionImage(currentQ) {
   const canvas = createCanvas(800, 420);
   const ctx = canvas.getContext("2d");
 
-  const bannerPath = path.resolve("million_banner.png");
+  const bannerPath = path.resolve("million.png");
   
   if (fs.existsSync(bannerPath)) {
     try {
@@ -94,46 +100,43 @@ async function generateMillionQuestionImage(currentQ) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  // 1. كتابة رقم السؤال والجائزة داخل التصميم بشكل أنيق بالأعلى
-  ctx.font = "bold 16px sans-serif";
+  // 1. كتابة رقم السؤال والجائزة داخل التصميم بالخط العربي
+  ctx.font = "bold 16px ArabicFont, sans-serif";
   ctx.fillStyle = "#F1C40F";
   ctx.textAlign = "center";
   ctx.fillText(`السؤال (${currentQ.level})  |  الجائزة: $${currentQ.prize}`, 400, 32);
 
-  // 2. كتابة نص السؤال داخل مربع السؤال العلوي
-  ctx.font = "bold 20px sans-serif";
+  // 2. كتابة نص السؤال داخل مربع السؤال العلوي بالخط العربي
+  ctx.font = "bold 19px ArabicFont, sans-serif";
   ctx.fillStyle = "#FFFFFF";
   ctx.textAlign = "center";
-  wrapText(ctx, currentQ.question, 400, 78, 700, 28);
+  wrapText(ctx, currentQ.question, 400, 75, 700, 26);
 
   // 3. ترتيب الخيارات بنظام 2x2 داخل مربعات القالب المخصصة
-  // الإحداثيات الدقيقة للمربعات الأربعة (يمين/يسار، صف أول/ثاني)
   const optionConfigs = [
-    { x: 440, y: 172, num: "1", align: "right", textX: 720 }, // الخيار 1 (يمين الصف العلوي)
-    { x: 60,  y: 172, num: "2", align: "left",  textX: 140 }, // الخيار 2 (يسار الصف العلوي)
-    { x: 440, y: 252, num: "3", align: "right", textX: 720 }, // الخيار 3 (يمين الصف السفلي)
-    { x: 60,  y: 252, num: "4", align: "left",  textX: 140 }, // الخيار 4 (يسار الصف السفلي)
+    { x: 440, y: 172, align: "right", textX: 710 }, // الخيار 1 (يمين الصف العلوي)
+    { x: 60,  y: 172, align: "left",  textX: 160 }, // الخيار 2 (يسار الصف العلوي)
+    { x: 440, y: 252, align: "right", textX: 710 }, // الخيار 3 (يمين الصف السفلي)
+    { x: 60,  y: 252, align: "left",  textX: 160 }, // الخيار 4 (يسار الصف السفلي)
   ];
 
   currentQ.options.forEach((option, index) => {
     const cfg = optionConfigs[index];
 
-    // كتابة أرقام الخيارات داخل الدوائر والأشكال الذهبية المخصصة في القالب
-    ctx.font = "bold 18px sans-serif";
+    // كتابة أرقام الخيارات داخل الدوائر والأشكال الذهبية
+    ctx.font = "bold 18px ArabicFont, sans-serif";
     ctx.fillStyle = "#F1C40F";
     ctx.textAlign = "center";
     
-    // مواقع أيقونات الدوائر الذهبية حسب القالب
     let circleX = (index === 0 || index === 2) ? 750 : 50;
     let circleY = (index < 2) ? 190 : 270;
     ctx.fillText(`${index + 1}`, circleX, circleY + 6);
 
-    // كتابة نص الإجابة داخل المربع
-    ctx.font = "bold 17px sans-serif";
+    // كتابة نص الإجابة داخل المربع بالخط العربي
+    ctx.font = "bold 16px ArabicFont, sans-serif";
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = cfg.align;
     
-    // قص النص إذا كان طويلاً ليتناسب تماماً داخل المربع
     let maxOptWidth = 310;
     ctx.fillText(option, cfg.textX, cfg.y + 26, maxOptWidth);
   });
@@ -212,12 +215,12 @@ export async function runMillionRound(channel, gameData) {
   gameData.answersInRound.clear();
 
   const buffer = await generateMillionQuestionImage(currentQ);
-  const attachment = new AttachmentBuilder(buffer, { name: "million_question.png" });
+  const attachment = new AttachmentBuilder(buffer, { name: "million.png" });
 
   const embed = new EmbedBuilder()
     .setColor("#1E90FF")
     .setDescription(`⏳ **لديك 20 ثانية لاختيار الإجابة بالضغط على الأزرار (1 / 2 / 3 / 4) أدناه!**`)
-    .setImage("attachment://million_question.png")
+    .setImage("attachment://million.png")
     .setFooter({ text: `اللاعبون المستمرون الآن: ${gameData.activePlayers.size}` });
 
   // أزرار Discord 1 / 2 / 3 / 4 أسفل الصورة
