@@ -117,7 +117,9 @@ export function getMillionRecruitmentEmbed(gameData) {
     .setFooter({ text: "3RB Games • من سيربح المليون" });
 
   return {
-    embeds: [embed]
+    content: "",
+    embeds: [embed],
+    components: [getMillionRecruitmentComponents()]
   };
 }
 
