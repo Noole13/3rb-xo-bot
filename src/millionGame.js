@@ -107,7 +107,7 @@ const millionQuestions = [
   }
 ];
 
-// دالة مساعدة لتقسيم النصوص الطويلة وتوسيطها داخل مربع السؤال العلوي (تم ضبط المسافة إلى 24 لمنع التداخل)
+// دالة مساعدة لتقسيم النصوص الطويلة وتوسيطها داخل مربع السؤال العلوي
 function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
   const words = text.split(" ");
   let lines = [];
@@ -150,28 +150,24 @@ async function generateMillionQuestionImage(currentQ) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  // 1. كتابة نص السؤال فقط، بمنتصف الصندوق العلوي تماماً (تم ضبط lineHeight على 24 لمنع تداخل السطرين)
   ctx.font = "bold 26px ArabicFont, sans-serif";
   ctx.fillStyle = "#FFFFFF";
   ctx.textAlign = "center";
   drawWrappedText(ctx, currentQ.question, 400, 234, 555, 24);
 
-  // 2. الخيارات الأربعة موزعة بدقة داخل المربعات الخاصة بها (شكل سداسي يمين ويسار)
   const optionConfigs = [
-    { text: currentQ.options[0], x: 655, y: 304, num: "1", circleX: 715, circleY: 302, align: "right" }, // الخيار 1: اليمين العلوي
-    { text: currentQ.options[1], x: 110, y: 304, num: "2", circleX: 85,  circleY: 302, align: "left" },  // الخيار 2: اليسار العلوي
-    { text: currentQ.options[2], x: 655, y: 359, num: "3", circleX: 715, circleY: 360, align: "right" }, // الخيار 3: اليمين السفلي
-    { text: currentQ.options[3], x: 110, y: 359, num: "4", circleX: 85,  circleY: 360, align: "left" },  // الخيار 4: اليسار السفلي
+    { text: currentQ.options[0], x: 655, y: 304, num: "1", circleX: 715, circleY: 302, align: "right" },
+    { text: currentQ.options[1], x: 110, y: 304, num: "2", circleX: 85,  circleY: 302, align: "left" },
+    { text: currentQ.options[2], x: 655, y: 359, num: "3", circleX: 715, circleY: 360, align: "right" },
+    { text: currentQ.options[3], x: 110, y: 359, num: "4", circleX: 85,  circleY: 360, align: "left" },
   ];
 
   optionConfigs.forEach((opt) => {
-    // كتابة نص الخيار داخل المربع
     ctx.font = "bold 24px ArabicFont, sans-serif";
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = opt.align;
     ctx.fillText(opt.text, opt.x, opt.y + 5, 260);
 
-    // كتابة رقم الخيار (1, 2, 3, 4) داخل المعين الذهبي بلون بارز
     ctx.font = "bold 20px ArabicFont, sans-serif";
     ctx.fillStyle = "#FFD700";
     ctx.textAlign = "center";
@@ -181,7 +177,7 @@ async function generateMillionQuestionImage(currentQ) {
   return canvas.toBuffer("image/png");
 }
 
-// دالة بدء اللعبة (مع اختيار الأسئلة عشوائياً وتلقائياً لكل لعبة جديدة)
+// دالة بدء اللعبة
 export async function startMillionGame(messageOrInteraction, db, guildId) {
   const channelId = messageOrInteraction.channelId;
 
@@ -190,8 +186,6 @@ export async function startMillionGame(messageOrInteraction, db, guildId) {
   }
 
   const hostId = messageOrInteraction.user ? messageOrInteraction.user.id : messageOrInteraction.author.id;
-
-  // خلط الأسئلة عشوائياً لكل جلسة جديدة لضمان عدم تكرار نفس الترتيب
   const shuffledQuestions = [...millionQuestions].sort(() => Math.random() - 0.5);
 
   const gameData = {
@@ -202,7 +196,7 @@ export async function startMillionGame(messageOrInteraction, db, guildId) {
     players: new Set(),
     activePlayers: new Set(),
     currentQuestionIndex: 0,
-    questions: shuffledQuestions, // حفظ الأسئلة العشوائية الخاصة بهذه اللعبة
+    questions: shuffledQuestions,
     answersInRound: new Map(),
     message: null,
   };
@@ -236,7 +230,7 @@ export function getMillionRecruitmentComponents() {
 export function getMillionRecruitmentEmbed(gameData) {
   const playerList =
     gameData.players.size > 0
-      ? Array.from(gameData.players).map((id) => `<@${id}>`).join(", ")
+      ? Array.from(gameData.players).map((id, index) => `**${index + 1}.** <@${id}>`).join("\n")
       : "لا توجد مشاركات حتى الآن. كن أول المنضمين!";
 
   return new EmbedBuilder()
@@ -248,6 +242,29 @@ export function getMillionRecruitmentEmbed(gameData) {
       { name: "📋 قائمة اللاعبين", value: playerList, inline: false }
     )
     .setFooter({ text: "3RB Games • من سيربح المليون" });
+}
+
+// معالج الأزرار الخاص بمرحلة التسجيل (يحدث رسالة الـ Embed تلقائياً عند انضمام أي شخص)
+export async function handleMillionButton(interaction) {
+  const channelId = interaction.channelId;
+  const gameData = millionGames.get(channelId);
+
+  if (!gameData || gameData.state !== "recruiting") {
+    return interaction.reply({ content: "⚠️ لا توجد مسابقة نشطة تستقبل مشاركين حالياً!", ephemeral: true });
+  }
+
+  if (interaction.customId === "million_join") {
+    const userId = interaction.user.id;
+    if (gameData.players.has(userId)) {
+      return interaction.reply({ content: "⚠️ أنت منضم بالفعل إلى المسابقة!", ephemeral: true });
+    }
+
+    gameData.players.add(userId);
+
+    // تحديث رسالة التسجيل فوراً لتظهر الأسماء والعدد الجديد بالترقيم
+    const updatedEmbed = getMillionRecruitmentEmbed(gameData);
+    await interaction.update({ embeds: [updatedEmbed] });
+  }
 }
 
 // دالة طرح الأسئلة وجولات اللعبة
@@ -264,7 +281,6 @@ export async function runMillionRound(channel, gameData) {
     .setImage("attachment://million.png")
     .setFooter({ text: `اللاعبون المستمرون الآن: ${gameData.activePlayers.size} | السؤال (${gameData.currentQuestionIndex + 1})` });
 
-  // أزرار Discord 1 / 2 / 3 / 4 أسفل الصورة
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId("million_ans_1").setLabel("1").setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId("million_ans_2").setLabel("2").setStyle(ButtonStyle.Secondary),
@@ -274,7 +290,6 @@ export async function runMillionRound(channel, gameData) {
 
   const msg = await channel.send({ embeds: [embed], files: [attachment], components: [row] });
 
-  // مؤقت لمدة 20 ثانية لتلقي الإجابات
   setTimeout(async () => {
     if (gameData.state !== "playing") return;
 
