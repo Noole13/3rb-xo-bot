@@ -10,7 +10,7 @@ import { addGameWin } from "./scores.js";
 import fs from "fs";
 import path from "path";
 
-// تسجيل الخط العربي لكي تظهر الحروف متصلة وصحيحة داخل الكانفاس
+// تسجيل الخط العربي لضمان ظهور الحروف متصلة وصحيحة
 const fontPath = path.resolve("NotoNaskhArabic-SemiBold.ttf");
 if (fs.existsSync(fontPath)) {
   GlobalFonts.registerFromPath(fontPath, "ArabicFont");
@@ -58,29 +58,30 @@ const millionQuestions = [
   },
 ];
 
-// دالة مساعدة لتقسيم النصوص الطويلة داخل مربع السؤال مع استخدام الخط العربي
-function wrapText(context, text, x, y, maxWidth, lineHeight) {
+// دالة مساعدة لتقسيم النصوص الطويلة وتوسيطها داخل مربع السؤال العلوي
+function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
   const words = text.split(" ");
-  let line = "";
-  let currentY = y;
+  let lines = [];
+  let currentLine = words[0];
 
-  for (let n = 0; n < words.length; n++) {
-    const testLine = line + words[n] + " ";
-    const metrics = context.measureText(testLine);
-    const testWidth = metrics.width;
-    if (testWidth > maxWidth && n > 0) {
-      context.fillText(line, x, currentY);
-      line = words[n] + " ";
-      currentY += lineHeight;
+  for (let i = 1; i < words.length; i++) {
+    const testLine = currentLine + " " + words[i];
+    if (ctx.measureText(testLine).width > maxWidth) {
+      lines.push(currentLine);
+      currentLine = words[i];
     } else {
-      line = testLine;
+      currentLine = testLine;
     }
   }
-  context.fillText(line, x, currentY);
-  return currentY;
+  lines.push(currentLine);
+
+  let startY = y - ((lines.length - 1) * lineHeight) / 2;
+  lines.forEach((line, index) => {
+    ctx.fillText(line, x, startY + index * lineHeight);
+  });
 }
 
-// دالة لتوليد صورة السؤال والخيارات بالاسم الجديد للقالب (million.png)
+// دالة لتوليد صورة السؤال والخيارات بالإحداثيات الدقيقة والمضبوطة
 async function generateMillionQuestionImage(currentQ) {
   const canvas = createCanvas(800, 420);
   const ctx = canvas.getContext("2d");
@@ -89,7 +90,7 @@ async function generateMillionQuestionImage(currentQ) {
   
   if (fs.existsSync(bannerPath)) {
     try {
-      const background = await loadImage(bannerPath);
+      const background = await loadImage(banner.path || bannerPath);
       ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
     } catch (e) {
       ctx.fillStyle = "#0B1D3A";
@@ -100,45 +101,39 @@ async function generateMillionQuestionImage(currentQ) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  // 1. كتابة رقم السؤال والجائزة داخل التصميم بالخط العربي
-  ctx.font = "bold 16px ArabicFont, sans-serif";
+  // 1. كتابة رقم السؤال والجائزة بدقة أعلى الدائرة الذهبية الكبرى
+  ctx.font = "bold 15px ArabicFont, sans-serif";
   ctx.fillStyle = "#F1C40F";
   ctx.textAlign = "center";
-  ctx.fillText(`السؤال (${currentQ.level})  |  الجائزة: $${currentQ.prize}`, 400, 32);
+  ctx.fillText(`السؤال (${currentQ.level})  |  الجائزة: $${currentQ.prize}`, 400, 165);
 
-  // 2. كتابة نص السؤال داخل مربع السؤال العلوي بالخط العربي
+  // 2. كتابة نص السؤال في منتصف مربع السؤال العلوي تماماً
   ctx.font = "bold 19px ArabicFont, sans-serif";
   ctx.fillStyle = "#FFFFFF";
   ctx.textAlign = "center";
-  wrapText(ctx, currentQ.question, 400, 75, 700, 26);
+  drawWrappedText(ctx, currentQ.question, 400, 252, 540, 26);
 
-  // 3. ترتيب الخيارات بنظام 2x2 داخل مربعات القالب المخصصة
+  // 3. الخيارات الأربعة موزعة بدقة داخل المربعات الأربعة (شكل سداسي / مستطيل مائل)
+  // إحداثيات دقيقة لمنتصف كل مربع إجابة
   const optionConfigs = [
-    { x: 440, y: 172, align: "right", textX: 710 }, // الخيار 1 (يمين الصف العلوي)
-    { x: 60,  y: 172, align: "left",  textX: 160 }, // الخيار 2 (يسار الصف العلوي)
-    { x: 440, y: 252, align: "right", textX: 710 }, // الخيار 3 (يمين الصف السفلي)
-    { x: 60,  y: 252, align: "left",  textX: 160 }, // الخيار 4 (يسار الصف السفلي)
+    { text: currentQ.options[0], x: 505, y: 326, num: "1", circleX: 742, circleY: 326, align: "right" }, // 1: اليمين العلوي
+    { text: currentQ.options[1], x: 295, y: 326, num: "2", circleX: 58,  circleY: 326, align: "left" },  // 2: اليسار العلوي
+    { text: currentQ.options[2], x: 505, y: 378, num: "3", circleX: 742, circleY: 378, align: "right" }, // 3: اليمين السفلي
+    { text: currentQ.options[3], x: 295, y: 378, num: "4", circleX: 58,  circleY: 378, align: "left" },  // 4: اليسار السفلي
   ];
 
-  currentQ.options.forEach((option, index) => {
-    const cfg = optionConfigs[index];
-
-    // كتابة أرقام الخيارات داخل الدوائر والأشكال الذهبية
-    ctx.font = "bold 18px ArabicFont, sans-serif";
-    ctx.fillStyle = "#F1C40F";
-    ctx.textAlign = "center";
-    
-    let circleX = (index === 0 || index === 2) ? 750 : 50;
-    let circleY = (index < 2) ? 190 : 270;
-    ctx.fillText(`${index + 1}`, circleX, circleY + 6);
-
-    // كتابة نص الإجابة داخل المربع بالخط العربي
+  optionConfigs.forEach((opt) => {
+    // كتابة نص الخيار داخل المربع
     ctx.font = "bold 16px ArabicFont, sans-serif";
     ctx.fillStyle = "#FFFFFF";
-    ctx.textAlign = cfg.align;
-    
-    let maxOptWidth = 310;
-    ctx.fillText(option, cfg.textX, cfg.y + 26, maxOptWidth);
+    ctx.textAlign = opt.align;
+    ctx.fillText(opt.text, opt.x, opt.y + 6, 360);
+
+    // كتابة رقم الخيار (1, 2, 3, 4) داخل الدائرة الذهبية الجانبية بدقة
+    ctx.font = "bold 15px ArabicFont, sans-serif";
+    ctx.fillStyle = "#0B1D3A"; // لون رقمي داكن وواضح داخل الدائرة الذهبية
+    ctx.textAlign = "center";
+    ctx.fillText(opt.num, opt.circleX, opt.circleY + 5);
   });
 
   return canvas.toBuffer("image/png");
@@ -209,7 +204,7 @@ export function getMillionRecruitmentEmbed(gameData) {
     .setFooter({ text: "3RB Games • من سيربح المليون" });
 }
 
-// دالة طرح الأسئلة وجولات اللعبة مع الصورة المطابقة وخلو النص الخارجي من السؤال والخيارات
+// دالة طرح الأسئلة وجولات اللعبة
 export async function runMillionRound(channel, gameData) {
   const currentQ = millionQuestions[gameData.currentQuestionIndex];
   gameData.answersInRound.clear();
