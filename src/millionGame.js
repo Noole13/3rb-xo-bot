@@ -122,9 +122,9 @@ async function generateMillionQuestionImage(currentQ) {
     ctx.textAlign = opt.align;
     ctx.fillText(opt.text, opt.x, opt.y + 5, 260);
 
-    // كتابة رقم الخيار (1, 2, 3, 4) داخل الدوائر الجانبية الذهبية بدقة
-    ctx.font = "bold 24px ArabicFont, sans-serif";
-    ctx.fillStyle = "#0B1D3A";
+    // كتابة رقم الخيار (1, 2, 3, 4) داخل المعين الذهبي بلون بارز
+    ctx.font = "bold 20px ArabicFont, sans-serif";
+    ctx.fillStyle = "#FFD700";
     ctx.textAlign = "center";
     ctx.fillText(opt.num, opt.circleX, opt.circleY + 5);
   });
