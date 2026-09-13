@@ -166,7 +166,7 @@ async function generateMillionQuestionImage(currentQ) {
   ctx.font = "bold 32px ArabicFont, sans-serif";
   ctx.fillStyle = "#FFFFFF";
   ctx.textAlign = "center";
-  drawWrappedText(ctx, currentQ.question, 400, 100, 450, 17);
+  drawWrappedText(ctx, currentQ.question, 400, 100, 450, 24);
 
   // 2. الخيارات الأربعة موزعة بدقة داخل صناديق المعين (الشكل الجديد)
   const optionConfigs = [
