@@ -102,7 +102,7 @@ async function generateMillionQuestionImage(currentQ) {
   }
 
   // 1. كتابة نص السؤال فقط، بمنتصف الصندوق العلوي تماماً (تم حذف سطر "السؤال/الجائزة" نهائياً)
-  ctx.font = "bold 15px ArabicFont, sans-serif";
+  ctx.font = "bold 32px ArabicFont, sans-serif";
   ctx.fillStyle = "#FFFFFF";
   ctx.textAlign = "center";
   drawWrappedText(ctx, currentQ.question, 400, 234, 555, 17);
@@ -123,7 +123,7 @@ async function generateMillionQuestionImage(currentQ) {
     ctx.fillText(opt.text, opt.x, opt.y + 5, 260);
 
     // كتابة رقم الخيار (1, 2, 3, 4) داخل الدوائر الجانبية الذهبية بدقة
-    ctx.font = "bold 15px ArabicFont, sans-serif";
+    ctx.font = "bold 24px ArabicFont, sans-serif";
     ctx.fillStyle = "#0B1D3A";
     ctx.textAlign = "center";
     ctx.fillText(opt.num, opt.circleX, opt.circleY + 5);
