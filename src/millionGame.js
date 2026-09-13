@@ -90,7 +90,7 @@ async function generateMillionQuestionImage(currentQ) {
   
   if (fs.existsSync(bannerPath)) {
     try {
-      const background = await loadImage(banner.path || bannerPath);
+      const background = await loadImage(bannerPath);
       ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
     } catch (e) {
       ctx.fillStyle = "#0B1D3A";
@@ -101,25 +101,24 @@ async function generateMillionQuestionImage(currentQ) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  // 1. كتابة رقم السؤال والجائزة بدقة أعلى الدائرة الذهبية الكبرى
+  // 1. كتابة رقم السؤال والجائزة بدقة أعلى الصندوق العلوي
   ctx.font = "bold 15px ArabicFont, sans-serif";
   ctx.fillStyle = "#F1C40F";
   ctx.textAlign = "center";
-  ctx.fillText(`السؤال (${currentQ.level})  |  الجائزة: $${currentQ.prize}`, 400, 165);
+  ctx.fillText(`السؤال (${currentQ.level})  |  الجائزة: $${currentQ.prize}`, 400, 245);
 
   // 2. كتابة نص السؤال في منتصف مربع السؤال العلوي تماماً
-  ctx.font = "bold 19px ArabicFont, sans-serif";
+  ctx.font = "bold 18px ArabicFont, sans-serif";
   ctx.fillStyle = "#FFFFFF";
   ctx.textAlign = "center";
-  drawWrappedText(ctx, currentQ.question, 400, 252, 540, 26);
+  drawWrappedText(ctx, currentQ.question, 400, 280, 520, 24);
 
-  // 3. الخيارات الأربعة موزعة بدقة داخل المربعات الأربعة (شكل سداسي / مستطيل مائل)
-  // إحداثيات دقيقة لمنتصف كل مربع إجابة
+  // 3. الخيارات الأربعة موزعة بدقة داخل المربعات الخاصة بها (شكل سداسي يمين ويسار)
   const optionConfigs = [
-    { text: currentQ.options[0], x: 505, y: 326, num: "1", circleX: 742, circleY: 326, align: "right" }, // 1: اليمين العلوي
-    { text: currentQ.options[1], x: 295, y: 326, num: "2", circleX: 58,  circleY: 326, align: "left" },  // 2: اليسار العلوي
-    { text: currentQ.options[2], x: 505, y: 378, num: "3", circleX: 742, circleY: 378, align: "right" }, // 3: اليمين السفلي
-    { text: currentQ.options[3], x: 295, y: 378, num: "4", circleX: 58,  circleY: 378, align: "left" },  // 4: اليسار السفلي
+    { text: currentQ.options[0], x: 505, y: 326, num: "1", circleX: 742, circleY: 326, align: "right" }, // الخيار 1: اليمين العلوي
+    { text: currentQ.options[1], x: 295, y: 326, num: "2", circleX: 58,  circleY: 326, align: "left" },  // الخيار 2: اليسار العلوي
+    { text: currentQ.options[2], x: 505, y: 378, num: "3", circleX: 742, circleY: 378, align: "right" }, // الخيار 3: اليمين السفلي
+    { text: currentQ.options[3], x: 295, y: 378, num: "4", circleX: 58,  circleY: 378, align: "left" },  // الخيار 4: اليسار السفلي
   ];
 
   optionConfigs.forEach((opt) => {
@@ -129,9 +128,9 @@ async function generateMillionQuestionImage(currentQ) {
     ctx.textAlign = opt.align;
     ctx.fillText(opt.text, opt.x, opt.y + 6, 360);
 
-    // كتابة رقم الخيار (1, 2, 3, 4) داخل الدائرة الذهبية الجانبية بدقة
+    // كتابة رقم الخيار (1, 2, 3, 4) داخل الدوائر الجانبية الذهبية بدقة
     ctx.font = "bold 15px ArabicFont, sans-serif";
-    ctx.fillStyle = "#0B1D3A"; // لون رقمي داكن وواضح داخل الدائرة الذهبية
+    ctx.fillStyle = "#0B1D3A";
     ctx.textAlign = "center";
     ctx.fillText(opt.num, opt.circleX, opt.circleY + 5);
   });
