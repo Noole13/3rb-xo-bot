@@ -163,7 +163,7 @@ async function generateMillionQuestionImage(currentQ) {
   }
 
   // 1. كتابة نص السؤال فقط، بمنتصف الصندوق العلوي الجديد
-  ctx.font = "bold 15px ArabicFont, sans-serif";
+  ctx.font = "bold 32px ArabicFont, sans-serif";
   ctx.fillStyle = "#FFFFFF";
   ctx.textAlign = "center";
   drawWrappedText(ctx, currentQ.question, 400, 100, 450, 17);
@@ -178,13 +178,13 @@ async function generateMillionQuestionImage(currentQ) {
 
   optionConfigs.forEach((opt) => {
     // كتابة نص الخيار داخل المربع
-    ctx.font = "bold 16px ArabicFont, sans-serif";
+    ctx.font = "bold 28px ArabicFont, sans-serif";
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = opt.align;
     ctx.fillText(opt.text, opt.x, opt.y + 5, 225);
 
     // كتابة رقم الخيار (1, 2, 3, 4) داخل المعين بلون بارز
-    ctx.font = "bold 15px ArabicFont, sans-serif";
+    ctx.font = "bold 20px ArabicFont, sans-serif";
     ctx.fillStyle = "#FFD700";
     ctx.textAlign = "center";
     ctx.fillText(opt.num, opt.circleX, opt.circleY + 5);
