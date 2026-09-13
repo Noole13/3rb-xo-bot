@@ -147,7 +147,7 @@ async function generateMillionQuestionImage(currentQ) {
   const canvas = createCanvas(800, 420);
   const ctx = canvas.getContext("2d");
 
-  const bannerPath = path.resolve("million.png");
+  const bannerPath = path.resolve("million-2.png");
 
   if (fs.existsSync(bannerPath)) {
     try {
