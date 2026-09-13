@@ -22,8 +22,10 @@ export const millionGames = new Map();
 // الجوائز الثابتة لكل مستوى (1 إلى 5)
 const PRIZES = ["100", "1,000", "10,000", "100,000", "1,000,000 🏆"];
 
-// مكتبة الأسئلة الكاملة، مقسّمة حسب مستوى الصعوبة
+// مكتبة الأسئلة الكاملة، مقسّمة حسب مستوى الصعوبة (كل مستوى له عدد كبير من الأسئلة
+// ويتم اختيار سؤال عشوائي منه في كل مرة تُلعب فيها الجولة)
 const questionsBank = {
+  // المستوى 1 - أسئلة سهلة جداً
   1: [
     { question: "ما هو لون السماء الصافية في النهار؟", options: ["أحمر", "أزرق", "أخضر", "أصفر"], correct: 2 },
     { question: "كم عدد أيام الأسبوع؟", options: ["5", "6", "7", "8"], correct: 3 },
@@ -38,6 +40,8 @@ const questionsBank = {
     { question: "ما هو الكوكب الذي نعيش عليه؟", options: ["المريخ", "الأرض", "الزهرة", "عطارد"], correct: 2 },
     { question: "ما هي الوجبة التي تؤكل في الصباح عادة؟", options: ["الغداء", "العشاء", "الفطور", "السحور"], correct: 3 },
   ],
+
+  // المستوى 2 - أسئلة سهلة إلى متوسطة
   2: [
     { question: "كم عدد أيام السنة الهجرية؟", options: ["354 أو 355 يوماً", "365 يوماً", "366 يوماً", "300 يوم"], correct: 1 },
     { question: "من هو مؤسس الدولة السعودية الأولى؟", options: ["الملك عبدالعزيز", "محمد بن سعود", "فيصل بن تركي", "سعود الكبير"], correct: 2 },
@@ -52,6 +56,8 @@ const questionsBank = {
     { question: "ما هي أكبر صحراء حارة في العالم؟", options: ["صحراء الربع الخالي", "الصحراء الكبرى", "صحراء كلاهاري", "صحراء غوبي"], correct: 2 },
     { question: "كم عدد اللاعبين الأساسيين في فريق كرة القدم الواحد؟", options: ["9", "10", "11", "12"], correct: 3 },
   ],
+
+  // المستوى 3 - أسئلة متوسطة
   3: [
     { question: "ما هي عاصمة دولة اليابان؟", options: ["سيول", "بكين", "طوكيو", "بانكوك"], correct: 3 },
     { question: "من هو العالم المسلم الذي يلقب بأبو الجبر؟", options: ["ابن سينا", "الخوارزمي", "ابن الهيثم", "الرازي"], correct: 2 },
@@ -61,11 +67,13 @@ const questionsBank = {
     { question: "من هو مخترع المصباح الكهربائي؟", options: ["نيوتن", "أديسون", "أينشتاين", "تسلا"], correct: 2 },
     { question: "ما هي عملة المملكة المتحدة؟", options: ["اليورو", "الدولار", "الجنيه الإسترليني", "الفرنك"], correct: 3 },
     { question: "كم عدد عظام جسم الإنسان البالغ تقريباً؟", options: ["106", "156", "206", "256"], correct: 3 },
-    { question: "من هو مؤلف كتاب 'ألف ليلة وليلة' الأصلي؟", options: ["أنطوان غالان", "ريتشارد بيرتون", "إدوارد لين", "بورخيس"], correct: 1 },
+    { question: "من هو مؤلف كتاب 'ألف ليلة وليلة' الأصلي بلا مؤلف معروف، لكن من جمعها ونشرها في الغرب أول مرة؟", options: ["أنطوان غالان", "ريتشارد بيرتون", "إدوارد لين", "بورخيس"], correct: 1 },
     { question: "ما هي أكبر دولة عربية من حيث المساحة؟", options: ["مصر", "السعودية", "الجزائر", "السودان"], correct: 3 },
     { question: "في أي قارة تقع دولة مصر؟", options: ["آسيا", "أوروبا", "إفريقيا", "أمريكا الجنوبية"], correct: 3 },
     { question: "ما هو الغاز الذي يحتاجه الإنسان للتنفس؟", options: ["ثاني أكسيد الكربون", "النيتروجين", "الأكسجين", "الهيدروجين"], correct: 3 },
   ],
+
+  // المستوى 4 - أسئلة صعبة
   4: [
     { question: "في أي عام هبط الإنسان على سطح القمر لأول مرة؟", options: ["1965", "1969", "1973", "1981"], correct: 2 },
     { question: "من هو الخليفة الراشدي الرابع؟", options: ["أبو بكر الصديق", "عمر بن الخطاب", "عثمان بن عفان", "علي بن أبي طالب"], correct: 4 },
@@ -80,6 +88,8 @@ const questionsBank = {
     { question: "ما هي أطول فترة صيام في اليوم بين دول العالم الإسلامي غالباً ما ترتبط بأي فصل؟", options: ["الشتاء", "الصيف", "الربيع", "الخريف"], correct: 2 },
     { question: "كم تبلغ سرعة الضوء تقريباً في الفراغ (كم/ثانية)؟", options: ["150 ألف", "300 ألف", "500 ألف", "900 ألف"], correct: 2 },
   ],
+
+  // المستوى 5 - أسئلة صعبة جداً (المليون)
   5: [
     { question: "من هو القائد المسلم الذي انتصر في معركة عين جالوت؟", options: ["صلاح الدين الأيوبي", "بيبرس", "سيف الدين قطز", "طغرل بك"], correct: 3 },
     { question: "في أي عام سقطت الأندلس بشكل نهائي بسقوط غرناطة؟", options: ["1392م", "1492م", "1592م", "1292م"], correct: 2 },
@@ -96,6 +106,7 @@ const questionsBank = {
   ],
 };
 
+// اختيار سؤال عشوائي من مستوى معيّن وتجهيزه بنفس شكل الكائن المستخدم في بقية الكود
 function pickRandomQuestion(level) {
   const pool = questionsBank[level];
   const picked = pool[Math.floor(Math.random() * pool.length)];
@@ -108,6 +119,7 @@ function pickRandomQuestion(level) {
   };
 }
 
+// دالة مساعدة لتقسيم النصوص الطويلة وتوسيطها داخل مربع السؤال العلوي
 function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
   const words = text.split(" ");
   let lines = [];
@@ -130,6 +142,7 @@ function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
   });
 }
 
+// دالة لتوليد صورة السؤال والخيارات بالإحداثيات الدقيقة والمضبوطة
 async function generateMillionQuestionImage(currentQ) {
   const canvas = createCanvas(800, 420);
   const ctx = canvas.getContext("2d");
@@ -149,25 +162,29 @@ async function generateMillionQuestionImage(currentQ) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  ctx.font = "bold 30px ArabicFont, sans-serif";
+  // 1. كتابة نص السؤال فقط، بمنتصف الصندوق العلوي الجديد
+  ctx.font = "bold 15px ArabicFont, sans-serif";
   ctx.fillStyle = "#FFFFFF";
   ctx.textAlign = "center";
-  drawWrappedText(ctx, currentQ.question, 400, 234, 555, 17);
+  drawWrappedText(ctx, currentQ.question, 400, 100, 450, 17);
 
+  // 2. الخيارات الأربعة موزعة بدقة داخل صناديق المعين (الشكل الجديد)
   const optionConfigs = [
-    { text: currentQ.options[0], x: 655, y: 304, num: "1", circleX: 715, circleY: 302, align: "right" },
-    { text: currentQ.options[1], x: 110, y: 304, num: "2", circleX: 85,  circleY: 302, align: "left" },
-    { text: currentQ.options[2], x: 655, y: 359, num: "3", circleX: 715, circleY: 360, align: "right" },
-    { text: currentQ.options[3], x: 110, y: 359, num: "4", circleX: 85,  circleY: 360, align: "left" },
+    { text: currentQ.options[0], x: 648, y: 197, num: "1", circleX: 680, circleY: 197, align: "right" }, // الخيار 1: اليمين العلوي
+    { text: currentQ.options[1], x: 155, y: 197, num: "2", circleX: 119, circleY: 197, align: "left" },  // الخيار 2: اليسار العلوي
+    { text: currentQ.options[2], x: 648, y: 308, num: "3", circleX: 680, circleY: 306, align: "right" }, // الخيار 3: اليمين السفلي
+    { text: currentQ.options[3], x: 155, y: 308, num: "4", circleX: 119, circleY: 306, align: "left" },  // الخيار 4: اليسار السفلي
   ];
 
   optionConfigs.forEach((opt) => {
-    ctx.font = "bold 26px ArabicFont, sans-serif";
+    // كتابة نص الخيار داخل المربع
+    ctx.font = "bold 16px ArabicFont, sans-serif";
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = opt.align;
-    ctx.fillText(opt.text, opt.x, opt.y + 5, 260);
+    ctx.fillText(opt.text, opt.x, opt.y + 5, 225);
 
-    ctx.font = "bold 20px ArabicFont, sans-serif";
+    // كتابة رقم الخيار (1, 2, 3, 4) داخل المعين بلون بارز
+    ctx.font = "bold 15px ArabicFont, sans-serif";
     ctx.fillStyle = "#FFD700";
     ctx.textAlign = "center";
     ctx.fillText(opt.num, opt.circleX, opt.circleY + 5);
@@ -176,6 +193,7 @@ async function generateMillionQuestionImage(currentQ) {
   return canvas.toBuffer("image/png");
 }
 
+// دالة بدء اللعبة
 export async function startMillionGame(messageOrInteraction, db, guildId) {
   const channelId = messageOrInteraction.channelId;
 
@@ -201,6 +219,7 @@ export async function startMillionGame(messageOrInteraction, db, guildId) {
   return { success: true, gameData };
 }
 
+// أزرار التسجيل والانضمام للعبة
 export function getMillionRecruitmentComponents() {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
@@ -221,10 +240,11 @@ export function getMillionRecruitmentComponents() {
   );
 }
 
+// واجهة رسالة التسجيل
 export function getMillionRecruitmentEmbed(gameData) {
   const playerList =
     gameData.players.size > 0
-      ? Array.from(gameData.players).map((id, index) => `**${index + 1}.** <@${id}>`).join("\n")
+      ? Array.from(gameData.players).map((id) => `<@${id}>`).join(", ")
       : "لا توجد مشاركات حتى الآن. كن أول المنضمين!";
 
   return new EmbedBuilder()
@@ -238,27 +258,7 @@ export function getMillionRecruitmentEmbed(gameData) {
     .setFooter({ text: "3RB Games • من سيربح المليون" });
 }
 
-export async function handleMillionButton(interaction) {
-  const channelId = interaction.channelId;
-  const gameData = millionGames.get(channelId);
-
-  if (!gameData || gameData.state !== "recruiting") {
-    return interaction.reply({ content: "⚠️ لا توجد مسابقة نشطة تستقبل مشاركين حالياً!", ephemeral: true });
-  }
-
-  if (interaction.customId === "million_join") {
-    const userId = interaction.user.id;
-    if (gameData.players.has(userId)) {
-      return interaction.reply({ content: "⚠️ أنت منضم بالفعل إلى المسابقة!", ephemeral: true });
-    }
-
-    gameData.players.add(userId);
-
-    const updatedEmbed = getMillionRecruitmentEmbed(gameData);
-    await interaction.update({ embeds: [updatedEmbed] });
-  }
-}
-
+// دالة طرح الأسئلة وجولات اللعبة
 export async function runMillionRound(channel, gameData) {
   const level = gameData.currentQuestionIndex + 1;
   const currentQ = pickRandomQuestion(level);
@@ -273,6 +273,7 @@ export async function runMillionRound(channel, gameData) {
     .setImage("attachment://million.png")
     .setFooter({ text: `اللاعبون المستمرون الآن: ${gameData.activePlayers.size}` });
 
+  // أزرار Discord 1 / 2 / 3 / 4 أسفل الصورة
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId("million_ans_1").setLabel("1").setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId("million_ans_2").setLabel("2").setStyle(ButtonStyle.Secondary),
@@ -282,6 +283,7 @@ export async function runMillionRound(channel, gameData) {
 
   const msg = await channel.send({ embeds: [embed], files: [attachment], components: [row] });
 
+  // مؤقت لمدة 20 ثانية لتلقي الإجابات
   setTimeout(async () => {
     if (gameData.state !== "playing") return;
 
