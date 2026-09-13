@@ -624,8 +624,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
 
         gameData.players.add(userId);
+        
+        // التعديل هنا: تحديث الرسالة مع تمرير الأيقونات والأسئلة ببيانات سليمة ومباشرة
+        const embedData = getMillionRecruitmentEmbed(gameData);
         await interaction.update({
-          embeds: [getMillionRecruitmentEmbed(gameData)],
+          embeds: embedData.embeds,
+          components: [getMillionRecruitmentComponents()],
         });
         return;
       }
