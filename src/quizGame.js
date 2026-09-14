@@ -5,15 +5,15 @@ import path from 'path';
 import { addGameWin } from "./scores.js";
 
 // =========================================================
-// تسجيل الخط العربي
+// تسجيل الخط العربي (شروق)
 // =========================================================
 
 try {
-    const fontPath = path.join(process.cwd(), 'NotoNaskhArabic-SemiBold.ttf');
+    const fontPath = path.join(process.cwd(), 'Shorooq_N1.ttf');
 
     if (fs.existsSync(fontPath)) {
-        GlobalFonts.registerFromPath(fontPath, 'NotoNaskh');
-        console.log("✅ تم تسجيل خط Noto Naskh Arabic بنجاح!");
+        GlobalFonts.registerFromPath(fontPath, 'Shorooq');
+        console.log("✅ تم تسجيل خط شروق (Shorooq) بنجاح!");
     } else {
         console.log("⚠️ تحذير: ملف الخط غير موجود في الجذر، تأكد من رفعه.");
     }
@@ -502,13 +502,13 @@ export async function startQuiz(message, mode = 'capitals', db) {
         }
 
         // =====================================================
-        // التصنيف
+        // التصنيف (تكبير الخط قليلاً ليكون أوضح)
         // =====================================================
 
         ctx.fillStyle = '#f59e0b';
 
         ctx.font =
-            'bold 26px NotoNaskh, sans-serif';
+            'bold 32px Shorooq, sans-serif';
 
         ctx.textAlign = 'left';
 
@@ -519,13 +519,13 @@ export async function startQuiz(message, mode = 'capitals', db) {
         );
 
         // =====================================================
-        // العنوان
+        // العنوان (تكبير الخط قليلاً ليكون أوضح)
         // =====================================================
 
         ctx.fillStyle = '#f59e0b';
 
         ctx.font =
-            'bold 26px NotoNaskh, sans-serif';
+            'bold 32px Shorooq, sans-serif';
 
         ctx.textAlign = 'right';
 
@@ -536,13 +536,13 @@ export async function startQuiz(message, mode = 'capitals', db) {
         );
 
         // =====================================================
-        // السؤال
+        // السؤال (تكبير الخط وجعله عريضاً وبارزاً)
         // =====================================================
 
         ctx.fillStyle = '#ffffff';
 
         ctx.font =
-            'bold 50px NotoNaskh, sans-serif';
+            'bold 55px Shorooq, sans-serif';
 
         ctx.textAlign = 'center';
 
@@ -603,13 +603,13 @@ export async function startQuiz(message, mode = 'capitals', db) {
         }
 
         // =====================================================
-        // المؤقت
+        // المؤقت (تكبير الخط ليكون أوضح)
         // =====================================================
 
         ctx.fillStyle = '#f59e0b';
 
         ctx.font =
-            'bold 26px NotoNaskh, sans-serif';
+            'bold 32px Shorooq, sans-serif';
 
         ctx.textAlign = 'center';
 
@@ -724,7 +724,6 @@ export async function startQuiz(message, mode = 'capitals', db) {
 
                 // =================================================
                 // Embed انتهاء الوقت
-                // نفس فكرة الصورة الثانية
                 // =================================================
 
                 const timeoutEmbed =
