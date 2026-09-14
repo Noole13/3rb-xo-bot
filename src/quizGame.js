@@ -1,4 +1,4 @@
-import { AttachmentBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { AttachmentBuilder, EmbedBuilder } from 'discord.js';
 import { createCanvas, GlobalFonts, loadImage } from '@napi-rs/canvas';
 import fs from 'fs';
 import path from 'path';
@@ -355,94 +355,84 @@ const questions = [
     // =========================================================
 
     { category: "ألغاز", question: "ما هو الشيء الذي له أسنان ولا يعض؟", answer: "المشط" },
-    { category: "ألغاز", question: "ما هو الشيء الذي يمشي بلا أرجل؟", answer: "الوقت" },
-    { category: "ألغاز", question: "ما هو الشيء الذي كلما أخذت منه كبر؟", answer: "الحفرة" }
+    { category: "ألغاز", question: "ما هو الشيء الذي يمشي بلا أرجل؟", answer: "الوقت" }
 ];
 
-// =========================================================
-// دالة توليد صورة السؤال
-// =========================================================
-
-export async function createQuizImage(questionText, categoryText) {
-    // 1. تحميل صورة الخلفية
-    const imagePath = path.join(process.cwd(), 'quiz.png.PNG');
-    let background;
-    
-    if (fs.existsSync(imagePath)) {
-        background = await loadImage(imagePath);
-    } else {
-        // لو لم تكن موجودة، ننشئ كانفاس افتراضي بأبعاد مناسبة
-        const canvas = createCanvas(800, 400);
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        return canvas.toBuffer('image/png');
-    }
-
-    const canvas = createCanvas(background.width, background.height);
+// دالة توليد صورة السؤال مع حدود الخط
+async function generateQuizImage(questionText, categoryText) {
+    const canvas = createCanvas(800, 400);
     const ctx = canvas.getContext('2d');
 
-    // رسم الخلفية
-    ctx.drawImage(background, 0, 0);
+    // تحميل الصورة الجديدة باسم quiz.png.PNG
+    const imagePath = path.join(process.cwd(), 'quiz.png.PNG');
+    if (fs.existsSync(imagePath)) {
+        try {
+            const background = await loadImage(imagePath);
+            ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
+        } catch (err) {
+            console.error("❌ خطأ أثناء تحميل صورة الكويز:", err);
+            ctx.fillStyle = '#2C2F33';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+    } else {
+        ctx.fillStyle = '#2C2F33';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 
-    // إعدادات الخط للحدود السوداء (Stroke) والتعبئة
-    ctx.font = 'bold 36px "Shorooq", sans-serif';
+    // إعدادات الخط مع الحدود السوداء للوضوح
+    ctx.font = 'bold 36px Shorooq';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-
-    // رسم التصنيف بالأعلى قليلاً
-    ctx.font = 'bold 28px "Shorooq", sans-serif';
+    // رسم حدود الخط (Stroke) باللون الأسود ثم النص باللون الأبيض
     ctx.lineWidth = 6;
-    ctx.strokeStyle = '#000000';
-    ctx.fillStyle = '#38bdf8'; // لون سماوي جذاب للتصنيف
-    
-    ctx.strokeText(`التصنيف: ${categoryText}`, centerX, centerY - 60);
-    ctx.fillText(`التصنيف: ${categoryText}`, centerX, centerY - 60);
+    ctx.strokeStyle = 'black';
+    ctx.fillStyle = 'white';
 
-    // رسم السؤال في المنتصف مع التفاف النص إذا كان طويلاً
-    ctx.font = 'bold 38px "Shorooq", sans-serif';
-    ctx.fillStyle = '#ffffff'; // لون أبيض ناصع للنص
-    
-    drawWrappedText(ctx, questionText, centerX, centerY + 20, canvas.width - 150, 50);
+    // طباعة القسم أو الفئة
+    const catText = `الفئة: ${categoryText}`;
+    ctx.strokeText(catText, canvas.width / 2, 100);
+    ctx.fillText(catText, canvas.width / 2, 100);
 
-    return canvas.toBuffer('image/png');
+    // طباعة السؤال
+    ctx.font = 'bold 30px Shorooq';
+    ctx.strokeText(questionText, canvas.width / 2, 220);
+    ctx.fillText(questionText, canvas.width / 2, 220);
+
+    return new AttachmentBuilder(await canvas.encode('png'), { name: 'quiz.png' });
 }
 
-// دالة مساعدة لتوزيع النص على أسطر متعددة إذا تجاوز عرض الصورة
-function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
-    const words = text.split(' ');
-    let line = '';
-    let testLine = '';
-    let lines = [];
+// دالة تشغيل المسابقة (مصدّرة بشكل صحيح لتتوافق مع ملف الاستدعاء)
+export async function startQuiz(message) {
+    if (questions.length === 0) {
+        return message.reply("⚠️ لا توجد أسئلة مضافة حالياً.");
+    }
 
-    for (let n = 0; n < words.length; n++) {
-        testLine += `${words[n]} `;
-        const metrics = ctx.measureText(testLine);
-        if (metrics.width > maxWidth && n > 0) {
-            lines.push(line);
-            line = `${words[n]} `;
-            testLine = `${words[n]} `;
-        } else {
-            line = testLine;
+    const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
+    const attachment = await generateQuizImage(randomQuestion.question, randomQuestion.category);
+
+    const embed = new EmbedBuilder()
+        .setTitle('🎮 لعبة الأسئلة والمعلومات')
+        .setDescription('أسرع شخص يكتب الإجابة الصحيحة في الشات يفوز بنقطة!')
+        .setImage('attachment://quiz.png')
+        .setColor('Random')
+        .setFooter({ text: 'لديك 30 ثانية للإجابة!' });
+
+    const sentMessage = await message.channel.send({ embeds: [embed], files: [attachment] });
+
+    const filter = response => !response.author.bot;
+    const collector = message.channel.createMessageCollector({ filter, time: 30000, max: 1 });
+
+    collector.on('collect', async response => {
+        if (response.content.trim() === randomQuestion.answer) {
+            await addGameWin(response.author.id, 1);
+            return message.channel.send(`🎉 كفو <@${response.author.id}>! الإجابة الصحيحة هي (**${randomQuestion.answer}**).`);
         }
-    }
-    lines.push(line);
+    });
 
-    // تعديل موقع البداية رأسياً حسب عدد الأسطر
-    let startY = y - ((lines.length - 1) * lineHeight) / 2;
-
-    for (let k = 0; k < lines.length; k++) {
-        const currentLine = lines[k].trim();
-        // رسم الحدود السوداء للنص
-        ctx.lineWidth = 7;
-        ctx.strokeStyle = '#000000';
-        ctx.strokeText(currentLine, x, startY + (k * lineHeight));
-        
-        // رسم تعبئة النص الأبيض
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText(currentLine, x, startY + (k * lineHeight));
-    }
+    collector.on('end', collected => {
+        if (collected.size === 0) {
+            message.channel.send(`⏰ انتهى الوقت! الإجابة الصحيحة هي: **${randomQuestion.answer}**`);
+        }
+    });
 }
