@@ -765,7 +765,7 @@ async function generateMillionQuestionImage(
   }
 
   ctx.font =
-    "bold 32px ArabicFont, sans-serif";
+    "bold 30px ArabicFont, sans-serif";
 
   ctx.fillStyle = "#FFD700";
   ctx.textAlign = "center";
@@ -820,7 +820,7 @@ async function generateMillionQuestionImage(
 
   optionConfigs.forEach((opt) => {
     ctx.font =
-      "bold 28px ArabicFont, sans-serif";
+      "bold 30px ArabicFont, sans-serif";
 
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = opt.align;
@@ -833,7 +833,7 @@ async function generateMillionQuestionImage(
     );
 
     ctx.font =
-      "bold 20px ArabicFont, sans-serif";
+      "bold 26px ArabicFont, sans-serif";
 
     ctx.fillStyle = "#FFD700";
     ctx.textAlign = "center";
