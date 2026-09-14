@@ -625,14 +625,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         gameData.players.add(userId);
 
-        // التحقق هل الشخص الذي ضغط هو صاحب اللعبة أو مشرف
-        const isHostOrAdmin = (userId === gameData.hostId) || interaction.member.permissions.has("ManageChannels");
+        // توليد الـ Embed المحدث بأسماء اللاعبين والعدد الجديد
+        const updatedEmbed = getMillionRecruitmentEmbed(gameData);
 
-        const embedData = getMillionRecruitmentEmbed(gameData);
         await interaction.update({
-          embeds: embedData.embeds,
-          // إذا كان هو المضيف تظهر الأزرار، وإذا كان عضواً عادية تختفي الأزرار من عنده
-          components: isHostOrAdmin ? [getMillionRecruitmentComponents()] : [],
+          embeds: [updatedEmbed],
+          components: [getMillionRecruitmentComponents()],
         });
         return;
       }
@@ -1045,7 +1043,4 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 /*
 |--------------------------------------------------------------------------
-| Login
-|--------------------------------------------------------------------------
 */
-client.login(TOKEN);
