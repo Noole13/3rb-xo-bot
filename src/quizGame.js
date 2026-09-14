@@ -1,4 +1,4 @@
-import { AttachmentBuilder } from 'discord.js';
+import { AttachmentBuilder, EmbedBuilder } from 'discord.js';
 import { createCanvas, GlobalFonts, loadImage } from '@napi-rs/canvas';
 import fs from 'fs';
 import path from 'path';
@@ -400,7 +400,7 @@ async function generateQuizImage(questionText, categoryText) {
     return new AttachmentBuilder(await canvas.encode('png'), { name: 'quiz.png' });
 }
 
-// تشغيل المسابقة (إرسال الصورة فقط بدون أي نصوص أو إمبيد في الشات)
+// تشغيل المسابقة (إرسال الصورة داخل Embed تماماً مثل السيرفر الآخر وبدون أي نصوص خارجية)
 export async function startQuiz(message) {
     if (questions.length === 0) {
         return message.reply("⚠️ لا توجد أسئلة مضافة حالياً.");
@@ -409,8 +409,15 @@ export async function startQuiz(message) {
     const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
     const attachment = await generateQuizImage(randomQuestion.question, randomQuestion.category);
 
-    // إرسال الصورة مباشرة كملف بدون إمبيد وبدون أي كلام فوقها
-    const sentMessage = await message.channel.send({ files: [attachment] });
+    // إنشاء الـ Embed واحتواء الصورة بداخلها بالحجم الحقيقي 800x395 بدون أي انضغاط
+    const embed = new EmbedBuilder()
+        .setColor('#2f3136')
+        .setImage('attachment://quiz.png');
+
+    const sentMessage = await message.channel.send({ 
+        embeds: [embed], 
+        files: [attachment] 
+    });
 
     const filter = response => !response.author.bot;
     const collector = message.channel.createMessageCollector({ filter, time: 30000, max: 1 });
