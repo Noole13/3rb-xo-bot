@@ -624,12 +624,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
 
         gameData.players.add(userId);
-        
-        // التعديل هنا: تحديث الرسالة مع تمرير الأيقونات والأسئلة ببيانات سليمة ومباشرة
+
+        // التحقق هل الشخص الذي ضغط هو صاحب اللعبة أو مشرف
+        const isHostOrAdmin = (userId === gameData.hostId) || interaction.member.permissions.has("ManageChannels");
+
         const embedData = getMillionRecruitmentEmbed(gameData);
         await interaction.update({
           embeds: embedData.embeds,
-          components: [getMillionRecruitmentComponents()],
+          // إذا كان هو المضيف تظهر الأزرار، وإذا كان عضواً عادية تختفي الأزرار من عنده
+          components: isHostOrAdmin ? [getMillionRecruitmentComponents()] : [],
         });
         return;
       }
@@ -1008,7 +1011,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
       }
 
-      game.finished.true = true;
       game.finished = true;
       await interaction.update({
         components: [...createBoard(gameId), ...createGameButtons(gameId, true)],
