@@ -5,15 +5,15 @@ import path from 'path';
 import { addGameWin } from "./scores.js";
 
 // =========================================================
-// تسجيل الخط العربي (شروق)
+// تسجيل الخط العربي
 // =========================================================
 
 try {
-    const fontPath = path.join(process.cwd(), 'Shorooq_N1.ttf');
+    const fontPath = path.join(process.cwd(), 'NotoNaskhArabic-SemiBold.ttf');
 
     if (fs.existsSync(fontPath)) {
-        GlobalFonts.registerFromPath(fontPath, 'Shorooq');
-        console.log("✅ تم تسجيل خط شروق (Shorooq) بنجاح!");
+        GlobalFonts.registerFromPath(fontPath, 'NotoNaskh');
+        console.log("✅ تم تسجيل خط Noto Naskh Arabic بنجاح!");
     } else {
         console.log("⚠️ تحذير: ملف الخط غير موجود في الجذر، تأكد من رفعه.");
     }
@@ -355,83 +355,409 @@ const questions = [
     // =========================================================
 
     { category: "ألغاز", question: "ما هو الشيء الذي له أسنان ولا يعض؟", answer: "المشط" },
-    { category: "ألغاز", question: "ما هو الشيء الذي يمشي بلا أرجل؟", answer: "الوقت" }
+    { category: "ألغاز", question: "ما هو الشيء الذي يمشي بلا أرجل؟", answer: "الوقت" },
+    { category: "ألغاز", question: "ما هو الشيء الذي كلما أخذت منه كبر؟", answer: "الحفرة" },
+    { category: "ألغاز", question: "ما هو الشيء الذي له عين ولا يرى؟", answer: "الإبرة" },
+    { category: "ألغاز", question: "ما هو الشيء الذي يسمع بلا أذن ويتكلم بلا لسان؟", answer: "الصدى" },
+    { category: "ألغاز", question: "ما هو الشيء الذي إذا زاد نقص؟", answer: "العمر" },
+    { category: "ألغاز", question: "ما هو الشيء الذي يكتب ولا يقرأ؟", answer: "القلم" },
+    { category: "ألغاز", question: "ما هو الشيء الذي له رقبة بلا رأس؟", answer: "الزجاجة" },
+    { category: "ألغاز", question: "ما هو الشيء الذي له وجه بلا عينين ويدل على الوقت؟", answer: "الساعة" },
+    { category: "ألغاز", question: "ما هو الشيء الذي إذا وضعته في الثلاجة لا يبرد؟", answer: "الفلفل الحار" },
+    { category: "ألغاز", question: "ما هو الشيء الذي كل الناس يحتاجونه وإذا أعطيته لغيرك يبقى لديك؟", answer: "النصيحة" },
+    { category: "ألغاز", question: "ما هو الشيء الذي يولد كبيرًا ويموت صغيرًا؟", answer: "القلم الرصاص" },
+    { category: "ألغاز", question: "ما هو الشيء الذي كلما مشى فقد جزءًا من ذيله؟", answer: "قلم الرصاص" },
+    { category: "ألغاز", question: "ما هو الشيء الذي يدخل الماء ولا يبتل؟", answer: "الضوء" },
+    { category: "ألغاز", question: "ما هو الشيء الذي تستطيع كسره دون أن تلمسه؟", answer: "الوعد" },
+    { category: "ألغاز", question: "ما هو الشيء الذي إذا نطقت اسمه كسرته؟", answer: "الصمت" },
+    { category: "ألغاز", question: "ما هو الشيء الذي يوجد في القرن مرة وفي الدقيقة مرتين ولا يوجد في الساعة؟", answer: "حرف القاف" },
+    { category: "ألغاز", question: "ما هو الشيء الذي يمشي على أربع في الصباح وعلى اثنتين في الظهر وعلى ثلاث في المساء؟", answer: "الإنسان" },
+    { category: "ألغاز", question: "ما هو الشيء الذي إذا أخذت منه أعطيته وإذا أعطيته أخذته؟", answer: "الصورة" },
+    { category: "ألغاز", question: "ما هو الشيء الذي كلما زاد وزنه قل ثمنه؟", answer: "الذهب" },
+    { category: "ألغاز", question: "ما هو الشيء الذي لا يستخدم إلا إذا كُسر؟", answer: "البيضة" },
+    { category: "ألغاز", question: "ما هو الشيء الذي تستطيع رؤيته في الليل ثلاث مرات وفي النهار مرة واحدة؟", answer: "حرف اللام" },
+    { category: "ألغاز", question: "ما هو الشيء الذي له أوراق وليس نباتًا وله جلد وليس حيوانًا؟", answer: "الكتاب" },
+    { category: "ألغاز", question: "ما هو الشيء الذي كلما زاد طوله قصر عمره؟", answer: "الشمعة" },
+    { category: "ألغاز", question: "ما هو الشيء الذي يحملك وتحمله في الوقت نفسه؟", answer: "الحذاء" },
+    { category: "ألغاز", question: "ما هو الشيء الذي له مفاتيح ولا يفتح الأقفال؟", answer: "البيانو" },
+    { category: "ألغاز", question: "ما هو الشيء الذي له لسان ولا يتكلم؟", answer: "الحذاء" },
+    { category: "ألغاز", question: "ما هو الشيء الذي له يد ولا يستطيع التصفيق؟", answer: "الساعة" },
+    { category: "ألغاز", question: "ما هو الشيء الذي له رأس ولا عقل له؟", answer: "الدبوس" },
+    { category: "ألغاز", question: "ما هو الشيء الذي كلما اقتربت منه ابتعد عنك؟", answer: "الأفق" },
+    { category: "ألغاز", question: "ما هو الشيء الذي يمكنه ملء غرفة كاملة دون أن يشغل حيزًا؟", answer: "الضوء" },
+    { category: "ألغاز", question: "ما هو الشيء الذي لا يمكنه الكلام لكنه يجيب عندما تناديه؟", answer: "الصدى" },
+    { category: "ألغاز", question: "ما هو الشيء الذي يموت إذا شرب الماء؟", answer: "النار" },
+    { category: "ألغاز", question: "ما هو الشيء الذي يأكل ولا يشبع وإذا شرب مات؟", answer: "النار" },
+    { category: "ألغاز", question: "ما هو الشيء الذي كلما زاد نقص وزنه؟", answer: "العمر" },
+    { category: "ألغاز", question: "ما هو الشيء الذي إذا قلبته رأيت كل شيء؟", answer: "المرآة" },
+    { category: "ألغاز", question: "ما هو الشيء الذي لا يمشي إلا بالضرب؟", answer: "المسمار" },
+    { category: "ألغاز", question: "ما هو الشيء الذي يركض ولا يمشي وله فم ولا يتكلم؟", answer: "النهر" },
+    { category: "ألغاز", question: "ما هو الشيء الذي يجري ولا يتعب؟", answer: "الماء" },
+    { category: "ألغاز", question: "ما هو الشيء الذي له أربعة أرجل ولا يستطيع المشي؟", answer: "الطاولة" },
+    { category: "ألغاز", question: "ما هو الشيء الذي كلما غسلته اتسخ؟", answer: "الماء" },
+    { category: "ألغاز", question: "ما هو الشيء الذي إذا جاع كذب وإذا شبع صدق؟", answer: "الميزان" },
+    { category: "ألغاز", question: "ما هو الشيء الذي له قلب بلا نبض؟", answer: "الخس" },
+    { category: "ألغاز", question: "ما هو الشيء الذي يوجد في كل شيء؟", answer: "حرف الشين" },
+    { category: "ألغاز", question: "ما هو الباب الذي لا يمكن فتحه؟", answer: "الباب المفتوح" },
+    { category: "ألغاز", question: "ما هو الشيء الذي إذا تركته مات وإذا سقيته عاش؟", answer: "النبات" },
+    { category: "ألغاز", question: "ما هو الشيء الذي يزداد كلما شاركته مع الآخرين؟", answer: "المعرفة" },
+    { category: "ألغاز", question: "ما هو الشيء الذي تراه ولا تستطيع لمسه؟", answer: "الظل" },
+    { category: "ألغاز", question: "ما هو الشيء الذي يتبعك أينما ذهبت ولا تستطيع الإمساك به؟", answer: "ظلك" },
+    { category: "ألغاز", question: "ما هو الشيء الذي إذا فقدته مرة لا تستطيع استعادته كما كان؟", answer: "الوقت" }
 ];
 
-// توليد صورة السؤال بدقة 800x395 مع النص بداخلها
-async function generateQuizImage(questionText, categoryText) {
-    const canvas = createCanvas(800, 395);
-    const ctx = canvas.getContext('2d');
+// =========================================================
+// تشغيل لعبة الأسئلة
+// =========================================================
 
-    const imagePath = path.join(process.cwd(), 'quiz.png.PNG');
-    if (fs.existsSync(imagePath)) {
+export async function startQuiz(message, mode = 'capitals', db) {
+
+    try {
+
+        // =====================================================
+        // اختيار الأسئلة حسب الوضع
+        // =====================================================
+
+        let availableQuestions = questions;
+
+        if (mode === 'capitals') {
+
+            availableQuestions = questions.filter(
+                q => q.category.includes('عواصم')
+            );
+
+        } else if (mode === 'general') {
+
+            availableQuestions = questions.filter(
+                q => !q.category.includes('عواصم')
+            );
+        }
+
+        // =====================================================
+        // اختيار سؤال عشوائي
+        // =====================================================
+
+        const q =
+            availableQuestions[
+                Math.floor(Math.random() * availableQuestions.length)
+            ] || questions[0];
+
+        // =====================================================
+        // إنشاء صورة السؤال
+        // =====================================================
+
+        const canvas = createCanvas(1200, 675);
+        const ctx = canvas.getContext('2d');
+
+        // =====================================================
+        // تحميل الخلفية
+        // =====================================================
+
         try {
-            const background = await loadImage(imagePath);
-            ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
-        } catch (err) {
-            console.error("❌ خطأ أثناء تحميل صورة الكويز:", err);
-            ctx.fillStyle = '#2C2F33';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const bgPath = path.join(
+                process.cwd(),
+                'quiz-bg.png'
+            );
+
+            if (fs.existsSync(bgPath)) {
+
+                const background = await loadImage(bgPath);
+
+                ctx.drawImage(
+                    background,
+                    0,
+                    0,
+                    canvas.width,
+                    canvas.height
+                );
+
+            } else {
+
+                ctx.fillStyle = '#0f172a';
+
+                ctx.fillRect(
+                    0,
+                    0,
+                    canvas.width,
+                    canvas.height
+                );
+            }
+
+        } catch (imgErr) {
+
+            console.error(
+                "خطأ في تحميل صورة الخلفية:",
+                imgErr
+            );
+
+            ctx.fillStyle = '#0f172a';
+
+            ctx.fillRect(
+                0,
+                0,
+                canvas.width,
+                canvas.height
+            );
         }
-    } else {
-        ctx.fillStyle = '#2C2F33';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // =====================================================
+        // التصنيف
+        // =====================================================
+
+        ctx.fillStyle = '#f59e0b';
+
+        ctx.font =
+            'bold 26px NotoNaskh, sans-serif';
+
+        ctx.textAlign = 'left';
+
+        ctx.fillText(
+            `التصنيف: ${q.category}`,
+            80,
+            85
+        );
+
+        // =====================================================
+        // العنوان
+        // =====================================================
+
+        ctx.fillStyle = '#f59e0b';
+
+        ctx.font =
+            'bold 26px NotoNaskh, sans-serif';
+
+        ctx.textAlign = 'right';
+
+        ctx.fillText(
+            'تحدي المعرفة',
+            1120,
+            85
+        );
+
+        // =====================================================
+        // السؤال
+        // =====================================================
+
+        ctx.fillStyle = '#ffffff';
+
+        ctx.font =
+            'bold 50px NotoNaskh, sans-serif';
+
+        ctx.textAlign = 'center';
+
+        const maxLineWidth = 1000;
+
+        const words = q.question.split(' ');
+
+        let line1 = '';
+        let line2 = '';
+
+        for (let i = 0; i < words.length; i++) {
+
+            const testLine =
+                line1 +
+                (line1 === '' ? '' : ' ') +
+                words[i];
+
+            const metrics =
+                ctx.measureText(testLine);
+
+            if (
+                metrics.width > maxLineWidth &&
+                line1 !== ''
+            ) {
+
+                line2 =
+                    words.slice(i).join(' ');
+
+                break;
+
+            } else {
+
+                line1 = testLine;
+            }
+        }
+
+        if (line2 === '') {
+
+            ctx.fillText(
+                line1,
+                600,
+                360
+            );
+
+        } else {
+
+            ctx.fillText(
+                line1,
+                600,
+                335
+            );
+
+            ctx.fillText(
+                line2,
+                600,
+                400
+            );
+        }
+
+        // =====================================================
+        // المؤقت
+        // =====================================================
+
+        ctx.fillStyle = '#f59e0b';
+
+        ctx.font =
+            'bold 26px NotoNaskh, sans-serif';
+
+        ctx.textAlign = 'center';
+
+        ctx.fillText(
+            'ثانية للإجابة 20',
+            600,
+            545
+        );
+
+        // =====================================================
+        // تجهيز الصورة
+        // =====================================================
+
+        const attachment =
+            new AttachmentBuilder(
+                await canvas.encode('png'),
+                {
+                    name: 'arabic-quiz.png'
+                }
+            );
+
+        // =====================================================
+        // إرسال السؤال
+        // =====================================================
+
+        const startTime = Date.now();
+
+        await message.channel.send({
+            files: [attachment]
+        });
+
+        // =====================================================
+        // مراقبة الإجابات
+        // =====================================================
+
+        const filter =
+            response => !response.author.bot;
+
+        const collector =
+            message.channel.createMessageCollector({
+                filter,
+                time: 20000
+            });
+
+        let answered = false;
+
+        // =====================================================
+        // عند وصول إجابة
+        // =====================================================
+
+        collector.on(
+            'collect',
+            async response => {
+
+                if (answered) return;
+
+                // -------------------------------------------------
+                // التحقق من الإجابة
+                // -------------------------------------------------
+
+                if (
+                    response.content.trim() ===
+                    q.answer
+                ) {
+
+                    answered = true;
+
+                    const endTime =
+                        Date.now();
+
+                    const timeTaken =
+                        (
+                            (endTime - startTime) /
+                            1000
+                        ).toFixed(2);
+
+                    collector.stop();
+
+                    // -------------------------------------------------
+                    // حفظ النقاط في قاعدة البيانات
+                    // -------------------------------------------------
+
+                    const gameType = mode === 'capitals' ? 'capitals' : 'general';
+
+                    if (db) {
+                        await addGameWin(db, message.guild.id, response.author.id, gameType);
+                    }
+
+                    // -------------------------------------------------
+                    // رسالة الفوز
+                    // -------------------------------------------------
+
+                    await response.reply({
+
+                        content:
+                            `🎉 كفو <@${response.author.id}>! أجبَت في **${timeTaken} ثانية** 🚀\nالإجابة الصحيحة: **${q.answer}**`
+
+                    });
+                }
+            }
+        );
+
+        // =====================================================
+        // انتهاء الوقت
+        // =====================================================
+
+        collector.on(
+            'end',
+            async collected => {
+
+                if (answered) return;
+
+                // =================================================
+                // Embed انتهاء الوقت
+                // نفس فكرة الصورة الثانية
+                // =================================================
+
+                const timeoutEmbed =
+                    new EmbedBuilder()
+
+                        // الشريط الجانبي الأزرق
+                        .setColor(0x5865F2)
+
+                        // النص الرئيسي
+                        .setDescription(
+                            `⏰ **انتهى الوقت!**\n\n` +
+                            `**الجواب كان: ${q.answer}**`
+                        );
+
+                // =================================================
+                // إرسال الـ Embed
+                // =================================================
+
+                await message.channel.send({
+                    embeds: [timeoutEmbed]
+                });
+            }
+        );
+
+    } catch (error) {
+
+        console.error(
+            "خطأ في تشغيل لعبة الأسئلة:",
+            error
+        );
+
+        await message.channel.send(
+            'حدث خطأ أثناء تحميل بطاقة السؤال.'
+        );
     }
-
-    // إعدادات الخط مع حدود سوداء (Outline) للوضوح
-    ctx.font = 'bold 34px Shorooq';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    ctx.lineWidth = 6;
-    ctx.strokeStyle = 'black';
-    ctx.fillStyle = 'white';
-
-    // طباعة الفئة في الأعلى داخل الصورة
-    const catText = `الفئة: ${categoryText}`;
-    ctx.strokeText(catText, canvas.width / 2, 100);
-    ctx.fillText(catText, canvas.width / 2, 100);
-
-    // طباعة السؤال في منتصف الصورة
-    ctx.font = 'bold 28px Shorooq';
-    ctx.strokeText(questionText, canvas.width / 2, 220);
-    ctx.fillText(questionText, canvas.width / 2, 220);
-
-    return new AttachmentBuilder(await canvas.encode('png'), { name: 'quiz.png' });
-}
-
-// تشغيل المسابقة (إرسال الصورة داخل Embed تماماً مثل السيرفر الآخر وبدون أي نصوص خارجية)
-export async function startQuiz(message) {
-    if (questions.length === 0) {
-        return message.reply("⚠️ لا توجد أسئلة مضافة حالياً.");
-    }
-
-    const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
-    const attachment = await generateQuizImage(randomQuestion.question, randomQuestion.category);
-
-    // إنشاء الـ Embed واحتواء الصورة بداخلها بالحجم الحقيقي 800x395 بدون أي انضغاط
-    const embed = new EmbedBuilder()
-        .setColor('#2f3136')
-        .setImage('attachment://quiz.png');
-
-    const sentMessage = await message.channel.send({ 
-        embeds: [embed], 
-        files: [attachment] 
-    });
-
-    const filter = response => !response.author.bot;
-    const collector = message.channel.createMessageCollector({ filter, time: 30000, max: 1 });
-
-    collector.on('collect', async response => {
-        if (response.content.trim() === randomQuestion.answer) {
-            await addGameWin(response.author.id, 1);
-            return message.channel.send(`🎉 كفو <@${response.author.id}>! الإجابة الصحيحة هي (**${randomQuestion.answer}**).`);
-        }
-    });
-
-    collector.on('end', collected => {
-        if (collected.size === 0) {
-            message.channel.send(`⏰ انتهى الوقت! الإجابة الصحيحة هي: **${randomQuestion.answer}**`);
-        }
-    });
 }
