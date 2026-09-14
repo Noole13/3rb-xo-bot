@@ -34,7 +34,6 @@ import {
   runNextRound,
 } from "./chairsGame.js";
 
-// استيراد لعبة من سيربح المليون
 import {
   millionGames,
   startMillionGame,
@@ -43,10 +42,7 @@ import {
   runMillionRound,
 } from "./millionGame.js";
 
-// استيراد أمر التحديثات من الملف المنفصل
 import { announcementCommand, executeAnnouncement } from "./announcements.js";
-
-// استيراد دوال النقاط ولوحة الشرف الشاملة من ملف scores.js
 import { addGameWin, getGlobalLeaderboard } from "./scores.js";
 
 const TOKEN = process.env.DISCORD_TOKEN;
@@ -61,12 +57,6 @@ if (!CLIENT_ID) {
   throw new Error("Missing DISCORD_CLIENT_ID");
 }
 
-/*
-|--------------------------------------------------------------------------
-| Firebase Initialization
-|--------------------------------------------------------------------------
-*/
-
 const firebaseConfig = {
   databaseURL:
     process.env.FIREBASE_DATABASE_URL ||
@@ -75,12 +65,6 @@ const firebaseConfig = {
 
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getDatabase(firebaseApp);
-
-/*
-|--------------------------------------------------------------------------
-| Render Web Service
-|--------------------------------------------------------------------------
-*/
 
 const server = createServer((req, res) => {
   res.writeHead(200, {
@@ -94,12 +78,6 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log(`Web server listening on port ${PORT}`);
 });
 
-/*
-|--------------------------------------------------------------------------
-| Discord Client
-|--------------------------------------------------------------------------
-*/
-
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -108,19 +86,15 @@ const client = new Client({
   ],
 });
 
-/*
-|--------------------------------------------------------------------------
-| Database Functions (Game Channel Settings)
-|--------------------------------------------------------------------------
-*/
-
 async function getGameChannel(guildId) {
   try {
     const channelRef = ref(db, `guildSettings/${guildId}/gameChannelId`);
     const snapshot = await get(channelRef);
+
     if (snapshot.exists()) {
       return snapshot.val();
     }
+
     return null;
   } catch (e) {
     console.error("Error fetching game channel from Firebase:", e);
@@ -131,6 +105,7 @@ async function getGameChannel(guildId) {
 async function setGameChannel(guildId, channelId) {
   try {
     const channelRef = ref(db, `guildSettings/${guildId}`);
+
     await set(channelRef, {
       gameChannelId: channelId,
     });
@@ -138,12 +113,6 @@ async function setGameChannel(guildId, channelId) {
     console.error("Error saving game channel to Firebase:", e);
   }
 }
-
-/*
-|--------------------------------------------------------------------------
-| Slash Commands
-|--------------------------------------------------------------------------
-*/
 
 const xoCommand = new SlashCommandBuilder()
   .setName("xo")
@@ -193,12 +162,6 @@ const millionCommand = new SlashCommandBuilder()
   .setName("مليون")
   .setDescription("بدء مسابقة من سيربح المليون الجماعية في الشات");
 
-/*
-|--------------------------------------------------------------------------
-| Register Slash Commands
-|--------------------------------------------------------------------------
-*/
-
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 async function registerCommands() {
@@ -216,12 +179,6 @@ async function registerCommands() {
   console.log("Slash commands registered successfully.");
 }
 
-/*
-|--------------------------------------------------------------------------
-| Discord Ready
-|--------------------------------------------------------------------------
-*/
-
 client.once(Events.ClientReady, async (readyClient) => {
   console.log(`Logged in as ${readyClient.user.tag}`);
 
@@ -231,12 +188,6 @@ client.once(Events.ClientReady, async (readyClient) => {
     console.error("Failed to register slash commands:", error);
   }
 });
-
-/*
-|--------------------------------------------------------------------------
-| Message Create (For Quiz / Text Commands & Channel Restriction)
-|--------------------------------------------------------------------------
-*/
 
 client.on(Events.MessageCreate, async (message) => {
   if (message.author.bot) return;
@@ -266,17 +217,14 @@ client.on(Events.MessageCreate, async (message) => {
       await startQuiz(message, "capitals", db);
     } else if (message.content === "!سؤال") {
       await startQuiz(message, "general", db);
-    } else if (message.content === "!اعلام" || message.content === "!flags") {
+    } else if (
+      message.content === "!اعلام" ||
+      message.content === "!flags"
+    ) {
       await startFlagQuiz(message, db);
     }
   }
 });
-
-/*
-|--------------------------------------------------------------------------
-| Interactions
-|--------------------------------------------------------------------------
-*/
 
 client.on(Events.InteractionCreate, async (interaction) => {
   try {
@@ -288,12 +236,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       if (interaction.commandName === "تعيين-قناة") {
         const channel = interaction.options.getChannel("channel");
+
         await setGameChannel(interaction.guildId, channel.id);
 
         await interaction.reply({
           content: `✅ تم تعيين القناة **<#${channel.id}>** كقناة رسمية للألعاب في هذا السيرفر بنجاح! 🎮`,
           flags: MessageFlags.Ephemeral,
         });
+
         return;
       }
 
@@ -301,12 +251,18 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await interaction.deferReply();
 
         try {
-          const selectedGame = interaction.options.getString("game") || "all";
-          const data = await getGlobalLeaderboard(db, interaction.guildId);
+          const selectedGame =
+            interaction.options.getString("game") || "all";
+
+          const data = await getGlobalLeaderboard(
+            db,
+            interaction.guildId
+          );
 
           if (!data) {
             await interaction.editReply({
-              content: "📊 لا توجد أي انتصارات أو نقاط مسجلة في السيرفر حتى الآن.",
+              content:
+                "📊 لا توجد أي انتصارات أو نقاط مسجلة في السيرفر حتى الآن.",
             });
             return;
           }
@@ -326,8 +282,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
           if (selectedGame !== "all") {
             const gameTitle = gamesList[selectedGame];
+
             embed.setTitle(`🏆 لوحة شرف ${gameTitle}`);
-            embed.setDescription(`أفضل اللاعبين في لعبة **${gameTitle}** على مستوى السيرفر:`);
+            embed.setDescription(
+              `أفضل اللاعبين في لعبة **${gameTitle}** على مستوى السيرفر:`
+            );
 
             const rankedPlayers = Object.entries(data)
               .map(([userId, userGames]) => ({
@@ -349,18 +308,28 @@ client.on(Events.InteractionCreate, async (interaction) => {
             let fieldText = "";
 
             rankedPlayers.forEach((player, index) => {
-              const rankIcon = medals[index] || `\`#${index + 1}\``;
+              const rankIcon =
+                medals[index] || `\`#${index + 1}\``;
+
               fieldText += `${rankIcon} <@${player.userId}> — **${player.score}** فوز\n`;
             });
 
-            embed.addFields({ name: "الترتيب", value: fieldText, inline: false });
+            embed.addFields({
+              name: "الترتيب",
+              value: fieldText,
+              inline: false,
+            });
           } else {
             embed.setTitle("🏆 لوحة الشرف الشاملة لألعاب السيرفر");
-            embed.setDescription("إليك ترتيبيات اللاعبين وأفضل الهدافين في مختلف ألعاب البوت:");
+            embed.setDescription(
+              "إليك ترتيبيات اللاعبين وأفضل الهدافين في مختلف ألعاب البوت:"
+            );
 
             let hasAnyScore = false;
 
-            for (const [gameKey, gameTitle] of Object.entries(gamesList)) {
+            for (const [gameKey, gameTitle] of Object.entries(
+              gamesList
+            )) {
               const rankedPlayers = Object.entries(data)
                 .map(([userId, userGames]) => ({
                   userId,
@@ -372,6 +341,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
               if (rankedPlayers.length > 0) {
                 hasAnyScore = true;
+
                 const medals = ["🥇", "🥈", "🥉"];
                 let fieldText = "";
 
@@ -379,21 +349,32 @@ client.on(Events.InteractionCreate, async (interaction) => {
                   fieldText += `${medals[index]} <@${player.userId}> — **${player.score}** فوز\n`;
                 });
 
-                embed.addFields({ name: gameTitle, value: fieldText, inline: false });
+                embed.addFields({
+                  name: gameTitle,
+                  value: fieldText,
+                  inline: false,
+                });
               }
             }
 
             if (!hasAnyScore) {
               await interaction.editReply({
-                content: "📊 لا توجد نتائج كافية لعرضها في لوحة الشرف حتى الآن.",
+                content:
+                  "📊 لا توجد نتائج كافية لعرضها في لوحة الشرف حتى الآن.",
               });
               return;
             }
           }
 
-          await interaction.editReply({ embeds: [embed] });
+          await interaction.editReply({
+            embeds: [embed],
+          });
         } catch (dbError) {
-          console.error("Error fetching global leaderboard:", dbError);
+          console.error(
+            "Error fetching global leaderboard:",
+            dbError
+          );
+
           await interaction.editReply({
             content: "❌ حدث خطأ أثناء جلب لوحة الشرف.",
           });
@@ -403,7 +384,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
 
       if (interaction.commandName === "كراسي") {
-        const allowedChannelId = await getGameChannel(interaction.guildId);
+        const allowedChannelId = await getGameChannel(
+          interaction.guildId
+        );
 
         if (!allowedChannelId) {
           await interaction.reply({
@@ -422,7 +405,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
           return;
         }
 
-        const res = startChairGame(interaction, client.user);
+        const res = startChairGame(
+          interaction,
+          client.user
+        );
+
         if (!res.success) {
           await interaction.reply({
             content: res.message,
@@ -446,7 +433,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
 
       if (interaction.commandName === "مليون") {
-        const allowedChannelId = await getGameChannel(interaction.guildId);
+        const allowedChannelId = await getGameChannel(
+          interaction.guildId
+        );
 
         if (!allowedChannelId) {
           await interaction.reply({
@@ -465,7 +454,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
           return;
         }
 
-        const res = await startMillionGame(interaction, db, interaction.guildId);
+        const res = await startMillionGame(
+          interaction,
+          db,
+          interaction.guildId
+        );
+
         if (!res.success) {
           await interaction.reply({
             content: res.message,
@@ -476,7 +470,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         const gameData = res.gameData;
         const embed = getMillionRecruitmentEmbed(gameData);
-        const components = getMillionRecruitmentComponents();
+        const components =
+          getMillionRecruitmentComponents();
 
         const replyMsg = await interaction.reply({
           embeds: [embed],
@@ -489,7 +484,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
 
       if (interaction.commandName === "xo") {
-        const allowedChannelId = await getGameChannel(interaction.guildId);
+        const allowedChannelId = await getGameChannel(
+          interaction.guildId
+        );
 
         if (!allowedChannelId) {
           await interaction.reply({
@@ -508,7 +505,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
           return;
         }
 
-        let opponent = interaction.options.getUser("player");
+        let opponent =
+          interaction.options.getUser("player");
+
         const creator = interaction.user;
 
         if (!opponent) {
@@ -536,7 +535,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
           }
         }
 
-        const gameId = createGame(creator, opponent);
+        const gameId = createGame(
+          creator,
+          opponent
+        );
+
         const game = games.get(gameId);
 
         await interaction.reply({
@@ -552,18 +555,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Million Game Buttons
-    |--------------------------------------------------------------------------
-    */
     if (interaction.customId.startsWith("million_")) {
       const channelId = interaction.channelId;
       const gameData = millionGames.get(channelId);
 
       if (!gameData) {
         return interaction.reply({
-          content: "❌ لا توجد مسابقة 'من سيربح المليون' نشطة في هذه القناة حالياً.",
+          content:
+            "❌ لا توجد مسابقة 'من سيربح المليون' نشطة في هذه القناة حالياً.",
           flags: MessageFlags.Ephemeral,
         });
       }
@@ -573,28 +572,27 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (interaction.customId === "million_join") {
         if (gameData.state !== "recruiting") {
           return interaction.reply({
-            content: "❌ لقد بدأت المسابقة بالفعل، لا يمكنك الانضمام الآن!",
+            content:
+              "❌ لقد بدأت المسابقة بالفعل، لا يمكنك الانضمام الآن!",
             flags: MessageFlags.Ephemeral,
           });
         }
 
         if (gameData.players.has(userId)) {
           return interaction.reply({
-            content: "⚠️ أنت منضم بالفعل إلى المسابقة!",
+            content:
+              "⚠️ أنت منضم بالفعل إلى المسابقة!",
             flags: MessageFlags.Ephemeral,
           });
         }
 
         gameData.players.add(userId);
 
-        // استخدام deferUpdate لتفادي انتهاء مهلة ديسكورد ثم تحديث الرسالة بأمان
-        await interaction.deferUpdate();
-
-        const updatedEmbed = getMillionRecruitmentEmbed(gameData);
-        await interaction.editReply({
-          embeds: [updatedEmbed],
+        await interaction.update({
+          embeds: [getMillionRecruitmentEmbed(gameData)],
           components: [getMillionRecruitmentComponents()],
         });
+
         return;
       }
 
@@ -604,29 +602,37 @@ client.on(Events.InteractionCreate, async (interaction) => {
           !interaction.member.permissions.has("ManageChannels")
         ) {
           return interaction.reply({
-            content: "❌ صاحب المسابقة أو المشرفون فقط هم من يمكنهم بدء التحدي!",
+            content:
+              "❌ صاحب المسابقة أو المشرفون فقط هم من يمكنهم بدء التحدي!",
             flags: MessageFlags.Ephemeral,
           });
         }
 
         if (gameData.players.size < 1) {
           return interaction.reply({
-            content: "⚠️ يجب وجود مشارك واحد على الأقل لبدء التحدي!",
+            content:
+              "⚠️ يجب وجود مشارك واحد على الأقل لبدء التحدي!",
             flags: MessageFlags.Ephemeral,
           });
         }
 
         gameData.state = "playing";
-        gameData.activePlayers = new Set(gameData.players);
+        gameData.activePlayers = new Set(
+          gameData.players
+        );
 
         await interaction.update({
-          content: "💰 **بدأت مسابقة من سيربح المليون! استعدوا للسؤال الأول...**",
+          content:
+            "💰 **بدأت مسابقة من سيربح المليون! استعدوا للسؤال الأول...**",
           embeds: [getMillionRecruitmentEmbed(gameData)],
           components: [],
         });
 
         setTimeout(() => {
-          runMillionRound(interaction.channel, gameData);
+          runMillionRound(
+            interaction.channel,
+            gameData
+          );
         }, 1000);
 
         return;
@@ -638,44 +644,62 @@ client.on(Events.InteractionCreate, async (interaction) => {
           !interaction.member.permissions.has("ManageChannels")
         ) {
           return interaction.reply({
-            content: "❌ صاحب المسابقة أو المشرفون فقط يمكنهم إلغاؤها!",
+            content:
+              "❌ صاحب المسابقة أو المشرفون فقط يمكنهم إلغاؤها!",
             flags: MessageFlags.Ephemeral,
           });
         }
 
         millionGames.delete(channelId);
+
         await interaction.update({
-          content: "❌ **تم إلغاء مسابقة من سيربح المليون بنجاح.**",
+          content:
+            "❌ **تم إلغاء مسابقة من سيربح المليون بنجاح.**",
           embeds: [],
           components: [],
         });
+
         return;
       }
 
-      if (interaction.customId.startsWith("million_ans_")) {
+      if (
+        interaction.customId.startsWith("million_ans_")
+      ) {
         if (gameData.state !== "playing") {
           return interaction.reply({
-            content: "❌ انتهى الوقت أو أن الجولة غير نشطة حالياً!",
+            content:
+              "❌ انتهى الوقت أو أن الجولة غير نشطة حالياً!",
             flags: MessageFlags.Ephemeral,
           });
         }
 
         if (!gameData.activePlayers.has(userId)) {
           return interaction.reply({
-            content: "❌ أنت لست مستمراً في هذه المسابقة (إما لم تنضم أو تم إقصاؤك سابقاً).",
+            content:
+              "❌ أنت لست مستمراً في هذه المسابقة (إما لم تنضم أو تم إقصاؤك سابقاً).",
             flags: MessageFlags.Ephemeral,
           });
         }
 
         if (gameData.answersInRound.has(userId)) {
           return interaction.reply({
-            content: "⚠️ لقد اخترت إجابتك مسبقاً! انتظر حتى انتهاء الوقت.",
+            content:
+              "⚠️ لقد اخترت إجابتك مسبقاً! انتظر حتى انتهاء الوقت.",
             flags: MessageFlags.Ephemeral,
           });
         }
 
-        const chosenOption = Number(interaction.customId.replace("million_ans_", ""));
-        gameData.answersInRound.set(userId, chosenOption);
+        const chosenOption = Number(
+          interaction.customId.replace(
+            "million_ans_",
+            ""
+          )
+        );
+
+        gameData.answersInRound.set(
+          userId,
+          chosenOption
+        );
 
         return interaction.reply({
           content: `✅ تم تسجيل إجابتك (**الخيار ${chosenOption}**) بنجاح! انتظر إعلان النتيجة.`,
@@ -684,18 +708,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Chair Game Buttons
-    |--------------------------------------------------------------------------
-    */
     if (interaction.customId.startsWith("chair_")) {
       const channelId = interaction.channelId;
       const gameData = chairGames.get(channelId);
 
       if (!gameData) {
         await interaction.reply({
-          content: "❌ لا توجد لعبة كراسي نشطة في هذه القناة حالياً.",
+          content:
+            "❌ لا توجد لعبة كراسي نشطة في هذه القناة حالياً.",
           flags: MessageFlags.Ephemeral,
         });
         return;
@@ -706,22 +726,26 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (interaction.customId === "chair_join") {
         if (gameData.state !== "recruiting") {
           return interaction.reply({
-            content: "❌ لقد بدأت اللعبة بالفعل، لا يمكنك الانضمام الآن!",
+            content:
+              "❌ لقد بدأت اللعبة بالفعل، لا يمكنك الانضمام الآن!",
             flags: MessageFlags.Ephemeral,
           });
         }
 
         if (gameData.players.has(userId)) {
           return interaction.reply({
-            content: "⚠️ أنت منضم بالفعل إلى هذه اللعبة!",
+            content:
+              "⚠️ أنت منضم بالفعل إلى هذه اللعبة!",
             flags: MessageFlags.Ephemeral,
           });
         }
 
         gameData.players.add(userId);
+
         await interaction.update({
           embeds: [getRecruitmentEmbed(gameData)],
         });
+
         return;
       }
 
@@ -731,23 +755,27 @@ client.on(Events.InteractionCreate, async (interaction) => {
           !interaction.member.permissions.has("ManageChannels")
         ) {
           return interaction.reply({
-            content: "❌ صاحب اللعبة أو المشرفون فقط هم من يمكنهم بدء اللعبة!",
+            content:
+              "❌ صاحب اللعبة أو المشرفون فقط هم من يمكنهم بدء اللعبة!",
             flags: MessageFlags.Ephemeral,
           });
         }
 
         if (gameData.players.size < 2) {
           return interaction.reply({
-            content: "⚠️ الحد الأدنى للبدء هو لاعبين اثنين (2) على الأقل!",
+            content:
+              "⚠️ الحد الأدنى للبدء هو لاعبين اثنين (2) على الأقل!",
             flags: MessageFlags.Ephemeral,
           });
         }
 
         gameData.state = "playing";
-        gameData.activePlayersInRound = Array.from(gameData.players);
+        gameData.activePlayersInRound =
+          Array.from(gameData.players);
 
         await interaction.update({
-          content: "🎮 **بدأت لعبة الكراسي! استعدوا للجولات...**",
+          content:
+            "🎮 **بدأت لعبة الكراسي! استعدوا للجولات...**",
           embeds: [getRecruitmentEmbed(gameData)],
           components: [],
         });
@@ -756,7 +784,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
           runNextRound(
             interaction.channel,
             gameData,
-            (gid, uid) => addGameWin(db, gid, uid, "chairs"),
+            (gid, uid) =>
+              addGameWin(
+                db,
+                gid,
+                uid,
+                "chairs"
+              ),
             interaction.guildId
           );
         }, 1000);
@@ -770,62 +804,73 @@ client.on(Events.InteractionCreate, async (interaction) => {
           !interaction.member.permissions.has("ManageChannels")
         ) {
           return interaction.reply({
-            content: "❌ صاحب اللعبة أو المشرفون فقط يمكنهم إلغاؤها!",
+            content:
+              "❌ صاحب اللعبة أو المشرفون فقط يمكنهم إلغاؤها!",
             flags: MessageFlags.Ephemeral,
           });
         }
 
         chairGames.delete(channelId);
+
         await interaction.update({
-          content: "❌ **تم إلغاء لعبة الكراسي بنجاح.**",
+          content:
+            "❌ **تم إلغاء لعبة الكراسي بنجاح.**",
           embeds: [],
           components: [],
         });
+
         return;
       }
 
       if (interaction.customId === "chair_sit") {
         if (gameData.state !== "playing") {
           return interaction.reply({
-            content: "❌ ليست هناك جولة جلوس نشطة حالياً!",
+            content:
+              "❌ ليست هناك جولة جلوس نشطة حالياً!",
             flags: MessageFlags.Ephemeral,
           });
         }
 
-        if (!gameData.activePlayersInRound.includes(userId)) {
+        if (
+          !gameData.activePlayersInRound.includes(
+            userId
+          )
+        ) {
           return interaction.reply({
-            content: "❌ أنت لست مشاركاً في هذه الجولة.",
+            content:
+              "❌ أنت لست مشاركاً في هذه الجولة.",
             flags: MessageFlags.Ephemeral,
           });
         }
 
         if (gameData.clickedInRound.has(userId)) {
           return interaction.reply({
-            content: "⚠️ لقد ضغطت مسبقاً! انتظر نتيجة الجولة.",
+            content:
+              "⚠️ لقد ضغطت مسبقاً! انتظر نتيجة الجولة.",
             flags: MessageFlags.Ephemeral,
           });
         }
 
         gameData.clickedInRound.add(userId);
+
         return interaction.reply({
-          content: "🪑 لقد جلست بنجاح! انتظر لنرى إن كنت ضمن الناجين.",
+          content:
+            "🪑 لقد جلست بنجاح! انتظر لنرى إن كنت ضمن الناجين.",
           flags: MessageFlags.Ephemeral,
         });
       }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | XO Board Buttons
-    |--------------------------------------------------------------------------
-    */
     if (interaction.customId.startsWith("xo:")) {
-      const [, gameId, indexText] = interaction.customId.split(":");
+      const [, gameId, indexText] =
+        interaction.customId.split(":");
+
       const game = games.get(gameId);
 
       if (!game || game.finished) {
         await interaction.reply({
-          content: "❌ هذه اللعبة غير موجودة أو انتهت.",
+          content:
+            "❌ هذه اللعبة غير موجودة أو انتهت.",
           flags: MessageFlags.Ephemeral,
         });
         return;
@@ -836,7 +881,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
         interaction.user.id !== game.playerO.id
       ) {
         await interaction.reply({
-          content: "❌ أنت لست أحد لاعبي هذه المباراة.",
+          content:
+            "❌ أنت لست أحد لاعبي هذه المباراة.",
           flags: MessageFlags.Ephemeral,
         });
         return;
@@ -848,32 +894,58 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
 
       const index = Number(indexText);
-      if (!Number.isInteger(index) || index < 0 || index > 8 || game.board[index]) {
+
+      if (
+        !Number.isInteger(index) ||
+        index < 0 ||
+        index > 8 ||
+        game.board[index]
+      ) {
         await interaction.reply({
-          content: "❌ حركة غير صالحة أو المربع مستخدم.",
+          content:
+            "❌ حركة غير صالحة أو المربع مستخدم.",
           flags: MessageFlags.Ephemeral,
         });
         return;
       }
 
-      const symbol = interaction.user.id === game.playerX.id ? "❌" : "⭕";
+      const symbol =
+        interaction.user.id === game.playerX.id
+          ? "❌"
+          : "⭕";
+
       game.board[index] = symbol;
 
       const handleGameEnd = async (resType) => {
         game.finished = true;
 
         if (resType === "❌" || resType === "⭕") {
-          const winner = resType === "❌" ? game.playerX : game.playerO;
-          const loser = resType === "❌" ? game.playerO : game.playerX;
+          const winner =
+            resType === "❌"
+              ? game.playerX
+              : game.playerO;
+
+          const loser =
+            resType === "❌"
+              ? game.playerO
+              : game.playerX;
 
           if (!winner.bot) {
-            await addGameWin(db, interaction.guildId, winner.id, "xo");
+            await addGameWin(
+              db,
+              interaction.guildId,
+              winner.id,
+              "xo"
+            );
           }
 
           await interaction.update({
             components: [
               ...createBoard(gameId),
-              ...createGameButtons(gameId, false),
+              ...createGameButtons(
+                gameId,
+                false
+              ),
             ],
           });
 
@@ -882,7 +954,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
               `🏆 **انتهت اللعبة!**\n\n` +
               `❌ ${game.playerX}  ضد  ⭕ ${game.playerO}\n` +
               `👑 الفائز: ${winner} (${resType})\n` +
-              `💤 الخاسر: ${loser} (${resType === "❌" ? "⭕" : "❌"})`,
+              `💤 الخاسر: ${loser} (${
+                resType === "❌" ? "⭕" : "❌"
+              })`,
           });
 
           if (winner.bot) {
@@ -892,50 +966,85 @@ client.on(Events.InteractionCreate, async (interaction) => {
               "فهمت اللعبة ولا نعلمك من جديد؟ 🤫",
               "بدري عليك تفوز، حاول مرة أخرى ☕",
             ];
-            const randomTaunt = botTaunts[Math.floor(Math.random() * botTaunts.length)];
+
+            const randomTaunt =
+              botTaunts[
+                Math.floor(
+                  Math.random() *
+                    botTaunts.length
+                )
+              ];
+
             await interaction.channel.send({
               content: randomTaunt,
-              allowedMentions: { parse: [] },
+              allowedMentions: {
+                parse: [],
+              },
             });
           }
+
           return;
         }
 
         if (resType === "draw") {
           game.finished = true;
+
           await interaction.update({
             components: [
               ...createBoard(gameId),
-              ...createGameButtons(gameId, false),
+              ...createGameButtons(
+                gameId,
+                false
+              ),
             ],
           });
 
           await interaction.channel.send({
-            content: `🤝 **انتهت اللعبة بالتعادل!**\n\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
+            content:
+              `🤝 **انتهت اللعبة بالتعادل!**\n\n❌ ${game.playerX}  ضد  ⭕ ${game.playerO}`,
           });
+
           return;
         }
       };
 
       let result = checkWinner(game.board);
+
       if (result) {
         await handleGameEnd(result);
         return;
       }
 
-      game.turn = game.turn === game.playerX.id ? game.playerO.id : game.playerX.id;
+      game.turn =
+        game.turn === game.playerX.id
+          ? game.playerO.id
+          : game.playerX.id;
 
       if (game.isVsBot && !game.finished) {
         const isBotTurn =
-          (game.turn === game.playerX.id && game.playerX.bot) ||
-          (game.turn === game.playerO.id && game.playerO.bot);
+          (game.turn === game.playerX.id &&
+            game.playerX.bot) ||
+          (game.turn === game.playerO.id &&
+            game.playerO.bot);
 
         if (isBotTurn) {
-          const botSymbol = game.turn === game.playerX.id ? "❌" : "⭕";
-          const botIndex = getBotMove(game.board, botSymbol);
+          const botSymbol =
+            game.turn === game.playerX.id
+              ? "❌"
+              : "⭕";
 
-          if (botIndex !== null && botIndex !== undefined) {
-            game.board[botIndex] = botSymbol;
+          const botIndex = getBotMove(
+            game.board,
+            botSymbol
+          );
+
+          if (
+            botIndex !== null &&
+            botIndex !== undefined
+          ) {
+            game.board[botIndex] =
+              botSymbol;
+
             result = checkWinner(game.board);
 
             if (result) {
@@ -943,7 +1052,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
               return;
             }
 
-            game.turn = game.turn === game.playerX.id ? game.playerO.id : game.playerX.id;
+            game.turn =
+              game.turn === game.playerX.id
+                ? game.playerO.id
+                : game.playerX.id;
           }
         }
       }
@@ -952,54 +1064,92 @@ client.on(Events.InteractionCreate, async (interaction) => {
         content: getStatus(game),
         components: createBoard(gameId),
       });
+
       return;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Replay Button
-    |--------------------------------------------------------------------------
-    */
-    if (interaction.customId.startsWith("xo-replay:")) {
-      const [, gameId] = interaction.customId.split(":");
+    if (
+      interaction.customId.startsWith(
+        "xo-replay:"
+      )
+    ) {
+      const [, gameId] =
+        interaction.customId.split(":");
+
       const game = games.get(gameId);
 
-      if (!game || (interaction.user.id !== game.playerX.id && interaction.user.id !== game.playerO.id)) {
+      if (
+        !game ||
+        (interaction.user.id !== game.playerX.id &&
+          interaction.user.id !== game.playerO.id)
+      ) {
         await interaction.reply({
-          content: "❌ لا يمكنك إعادة اللعب.",
+          content:
+            "❌ لا يمكنك إعادة اللعب.",
           flags: MessageFlags.Ephemeral,
         });
         return;
       }
 
+      game.finished.true = true;
       game.finished = true;
+
       await interaction.update({
-        components: [...createBoard(gameId), ...createGameButtons(gameId, true)],
+        components: [
+          ...createBoard(gameId),
+          ...createGameButtons(
+            gameId,
+            true
+          ),
+        ],
       });
 
-      const humanPlayer = game.playerX.bot ? game.playerO : game.playerX;
-      const botPlayer = game.playerX.bot ? game.playerX : game.playerO;
+      const humanPlayer = game.playerX.bot
+        ? game.playerO
+        : game.playerX;
 
-      const newGameId = createGame(humanPlayer, botPlayer);
+      const botPlayer = game.playerX.bot
+        ? game.playerX
+        : game.playerO;
+
+      const newGameId = createGame(
+        humanPlayer,
+        botPlayer
+      );
+
       const newGame = games.get(newGameId);
 
       await interaction.channel.send({
         content: getStatus(newGame),
         components: createBoard(newGameId),
       });
+
       return;
     }
   } catch (error) {
-    console.error("Interaction error:", error);
+    console.error(
+      "Interaction error:",
+      error
+    );
+
     try {
-      if (!interaction.replied && !interaction.deferred) {
+      if (
+        !interaction.replied &&
+        !interaction.deferred
+      ) {
         await interaction.reply({
-          content: "❌ حدث خطأ غير متوقع.",
+          content:
+            "❌ حدث خطأ غير متوقع.",
           flags: MessageFlags.Ephemeral,
         });
       }
     } catch (e) {
-      console.error("Error sending error reply:", e);
+      console.error(
+        "Error sending error reply:",
+        e
+      );
     }
   }
 });
+
+client.login(TOKEN);
