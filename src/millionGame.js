@@ -767,7 +767,7 @@ async function generateMillionQuestionImage(
   ctx.font =
     "bold 32px ArabicFont, sans-serif";
 
-  ctx.fillStyle = "#FFFFFF";
+  ctx.fillStyle = "#FFD700";
   ctx.textAlign = "center";
 
   drawWrappedText(
@@ -776,7 +776,7 @@ async function generateMillionQuestionImage(
     400,
     100,
     450,
-    24
+    28
   );
 
   const optionConfigs = [
