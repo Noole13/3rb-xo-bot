@@ -241,7 +241,6 @@ client.once(Events.ClientReady, async (readyClient) => {
 client.on(Events.MessageCreate, async (message) => {
   if (message.author.bot) return;
 
-  // أوامر الألعاب (العواصم، الأسئلة، الأعلام)
   if (
     message.content === "!عواصم" ||
     message.content === "!سؤال" ||
@@ -282,24 +281,13 @@ client.on(Events.MessageCreate, async (message) => {
 client.on(Events.InteractionCreate, async (interaction) => {
   try {
     if (interaction.isChatInputCommand()) {
-      /*
-      |--------------------------------------------------------------------------
-      | /إعلان-التحديثات
-      |--------------------------------------------------------------------------
-      */
       if (interaction.commandName === "إعلان-التحديثات") {
         await executeAnnouncement(interaction);
         return;
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | /تعيين-قناة
-      |--------------------------------------------------------------------------
-      */
       if (interaction.commandName === "تعيين-قناة") {
         const channel = interaction.options.getChannel("channel");
-
         await setGameChannel(interaction.guildId, channel.id);
 
         await interaction.reply({
@@ -309,11 +297,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | /top (لوحة الشرف الشاملة أو حسب اللعبة المحددة)
-      |--------------------------------------------------------------------------
-      */
       if (interaction.commandName === "top") {
         await interaction.deferReply();
 
@@ -419,11 +402,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | /كراسي (لعبة الكراسي)
-      |--------------------------------------------------------------------------
-      */
       if (interaction.commandName === "كراسي") {
         const allowedChannelId = await getGameChannel(interaction.guildId);
 
@@ -467,11 +445,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | /مليون (مسابقة من سيربح المليون)
-      |--------------------------------------------------------------------------
-      */
       if (interaction.commandName === "مليون") {
         const allowedChannelId = await getGameChannel(interaction.guildId);
 
@@ -515,11 +488,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | /xo
-      |--------------------------------------------------------------------------
-      */
       if (interaction.commandName === "xo") {
         const allowedChannelId = await getGameChannel(interaction.guildId);
 
@@ -580,12 +548,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Buttons Interactions
-    |--------------------------------------------------------------------------
-    */
-
     if (!interaction.isButton()) {
       return;
     }
@@ -625,10 +587,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         gameData.players.add(userId);
 
-        // توليد الـ Embed المحدث بأسماء اللاعبين والعدد الجديد
-        const updatedEmbed = getMillionRecruitmentEmbed(gameData);
+        // استخدام deferUpdate لتفادي انتهاء مهلة ديسكورد ثم تحديث الرسالة بأمان
+        await interaction.deferUpdate();
 
-        await interaction.update({
+        const updatedEmbed = getMillionRecruitmentEmbed(gameData);
+        await interaction.editReply({
           embeds: [updatedEmbed],
           components: [getMillionRecruitmentComponents()],
         });
@@ -1040,7 +1003,3 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
   }
 });
-
-/*
-|--------------------------------------------------------------------------
-*/
