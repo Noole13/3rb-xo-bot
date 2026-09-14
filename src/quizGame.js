@@ -1,4 +1,4 @@
-import { AttachmentBuilder, EmbedBuilder } from 'discord.js';
+import { AttachmentBuilder } from 'discord.js';
 import { createCanvas, GlobalFonts, loadImage } from '@napi-rs/canvas';
 import fs from 'fs';
 import path from 'path';
@@ -358,12 +358,11 @@ const questions = [
     { category: "ألغاز", question: "ما هو الشيء الذي يمشي بلا أرجل؟", answer: "الوقت" }
 ];
 
-// دالة توليد صورة السؤال مع حدود الخط
+// توليد صورة السؤال بدقة 800x395 مع النص بداخلها
 async function generateQuizImage(questionText, categoryText) {
-    const canvas = createCanvas(800, 400);
+    const canvas = createCanvas(800, 395);
     const ctx = canvas.getContext('2d');
 
-    // تحميل الصورة الجديدة باسم quiz.png.PNG
     const imagePath = path.join(process.cwd(), 'quiz.png.PNG');
     if (fs.existsSync(imagePath)) {
         try {
@@ -379,30 +378,29 @@ async function generateQuizImage(questionText, categoryText) {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    // إعدادات الخط مع الحدود السوداء للوضوح
-    ctx.font = 'bold 36px Shorooq';
+    // إعدادات الخط مع حدود سوداء (Outline) للوضوح
+    ctx.font = 'bold 34px Shorooq';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // رسم حدود الخط (Stroke) باللون الأسود ثم النص باللون الأبيض
     ctx.lineWidth = 6;
     ctx.strokeStyle = 'black';
     ctx.fillStyle = 'white';
 
-    // طباعة القسم أو الفئة
+    // طباعة الفئة في الأعلى داخل الصورة
     const catText = `الفئة: ${categoryText}`;
     ctx.strokeText(catText, canvas.width / 2, 100);
     ctx.fillText(catText, canvas.width / 2, 100);
 
-    // طباعة السؤال
-    ctx.font = 'bold 30px Shorooq';
+    // طباعة السؤال في منتصف الصورة
+    ctx.font = 'bold 28px Shorooq';
     ctx.strokeText(questionText, canvas.width / 2, 220);
     ctx.fillText(questionText, canvas.width / 2, 220);
 
     return new AttachmentBuilder(await canvas.encode('png'), { name: 'quiz.png' });
 }
 
-// دالة تشغيل المسابقة (مصدّرة بشكل صحيح لتتوافق مع ملف الاستدعاء)
+// تشغيل المسابقة (إرسال الصورة فقط بدون أي نصوص أو إمبيد في الشات)
 export async function startQuiz(message) {
     if (questions.length === 0) {
         return message.reply("⚠️ لا توجد أسئلة مضافة حالياً.");
@@ -411,14 +409,8 @@ export async function startQuiz(message) {
     const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
     const attachment = await generateQuizImage(randomQuestion.question, randomQuestion.category);
 
-    const embed = new EmbedBuilder()
-        .setTitle('🎮 لعبة الأسئلة والمعلومات')
-        .setDescription('أسرع شخص يكتب الإجابة الصحيحة في الشات يفوز بنقطة!')
-        .setImage('attachment://quiz.png')
-        .setColor('Random')
-        .setFooter({ text: 'لديك 30 ثانية للإجابة!' });
-
-    const sentMessage = await message.channel.send({ embeds: [embed], files: [attachment] });
+    // إرسال الصورة مباشرة كملف بدون إمبيد وبدون أي كلام فوقها
+    const sentMessage = await message.channel.send({ files: [attachment] });
 
     const filter = response => !response.author.bot;
     const collector = message.channel.createMessageCollector({ filter, time: 30000, max: 1 });
