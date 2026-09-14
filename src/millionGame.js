@@ -170,20 +170,18 @@ async function generateMillionQuestionImage(currentQ) {
 
   // 2. الخيارات الأربعة موزعة بدقة داخل صناديق المعين (الشكل الجديد)
   const optionConfigs = [
-    { text: currentQ.options[0], x: 648, y: 197, num: "1", circleX: 680, circleY: 197, align: "right" }, // الخيار 1: اليمين العلوي
-    { text: currentQ.options[1], x: 155, y: 197, num: "2", circleX: 119, circleY: 197, align: "left" },  // الخيار 2: اليسار العلوي
-    { text: currentQ.options[2], x: 648, y: 308, num: "3", circleX: 680, circleY: 306, align: "right" }, // الخيار 3: اليمين السفلي
-    { text: currentQ.options[3], x: 155, y: 308, num: "4", circleX: 119, circleY: 306, align: "left" },  // الخيار 4: اليسار السفلي
+    { text: currentQ.options[0], x: 648, y: 197, num: "1", circleX: 680, circleY: 197, align: "right" },
+    { text: currentQ.options[1], x: 155, y: 197, num: "2", circleX: 119, circleY: 197, align: "left" },
+    { text: currentQ.options[2], x: 648, y: 308, num: "3", circleX: 680, circleY: 306, align: "right" },
+    { text: currentQ.options[3], x: 155, y: 308, num: "4", circleX: 119, circleY: 306, align: "left" },
   ];
 
   optionConfigs.forEach((opt) => {
-    // كتابة نص الخيار داخل المربع
     ctx.font = "bold 28px ArabicFont, sans-serif";
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = opt.align;
     ctx.fillText(opt.text, opt.x, opt.y + 5, 225);
 
-    // كتابة رقم الخيار (1, 2, 3, 4) داخل المعين بلون بارز
     ctx.font = "bold 20px ArabicFont, sans-serif";
     ctx.fillStyle = "#FFD700";
     ctx.textAlign = "center";
@@ -273,7 +271,6 @@ export async function runMillionRound(channel, gameData) {
     .setImage("attachment://million.png")
     .setFooter({ text: `اللاعبون المستمرون الآن: ${gameData.activePlayers.size}` });
 
-  // أزرار Discord 1 / 2 / 3 / 4 أسفل الصورة
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId("million_ans_1").setLabel("1").setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId("million_ans_2").setLabel("2").setStyle(ButtonStyle.Secondary),
@@ -283,7 +280,6 @@ export async function runMillionRound(channel, gameData) {
 
   const msg = await channel.send({ embeds: [embed], files: [attachment], components: [row] });
 
-  // مؤقت لمدة 20 ثانية لتلقي الإجابات
   setTimeout(async () => {
     if (gameData.state !== "playing") return;
 
